@@ -1,36 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { StravaActivity } from "@/lib/constants";
 import { STRAVA_ORANGE } from "@/lib/constants";
 import { formatDuration } from "@/lib/randomActivity";
+import { validateActivity } from "@/lib/activityValidation";
+import { RouteMap } from "./RouteMap";
 
 interface StravaCardProps {
   activity: StravaActivity;
   onChange?: (activity: StravaActivity) => void;
   isCompact?: boolean;
+  theme?: "light" | "dark";
   className?: string;
 }
 
-const ICONS: Record<StravaActivity["type"], string> = {
-  run: "🏃",
-  ride: "🚴",
-  swim: "🏊",
-  hike: "🥾",
-};
-
+/**
+ * Strava Stats Sticker design - matches Strava's Instagram share format.
+ * Uses Inter (Strava's UI font). Supports light/dark theme.
+ */
 export function StravaCard({
   activity,
   onChange,
   isCompact = false,
+  theme = "dark",
   className = "",
 }: StravaCardProps) {
+  const isLight = theme === "light";
   const formattedDuration = formatDuration(activity.duration);
-  const distanceUnit = activity.type === "swim" ? "km" : "km";
   const distanceDisplay =
     activity.type === "swim" && activity.distance < 1
-      ? `${(activity.distance * 1000).toFixed(0)}m`
-      : `${activity.distance} ${distanceUnit}`;
+      ? `${(activity.distance * 1000).toFixed(0)} m`
+      : `${activity.distance.toFixed(1)} km`;
+
+  const routeSeed = useMemo(
+    () =>
+      (activity.routeName + activity.distance + activity.duration)
+        .split("")
+        .reduce((a, c) => a + c.charCodeAt(0), 0),
+    [activity.routeName, activity.distance, activity.duration]
+  );
 
   const handleFieldChange = (
     field: keyof StravaActivity,
@@ -39,141 +48,142 @@ export function StravaCard({
     if (!onChange) return;
     const next = { ...activity };
     if (field === "routeName") next.routeName = value as string;
-    if (field === "distance") next.distance = parseFloat(value as string) || 0;
-    if (field === "duration") next.duration = parseInt(value as string, 10) || 0;
+    if (field === "activityDate") next.activityDate = value as string;
+    if (field === "distance") next.distance = parseFloat(String(value).replace(/[^\d.]/g, "")) || 0;
+    if (field === "duration") {
+      const str = String(value);
+      const parts = str.split(":").map(Number);
+      if (parts.length === 3) next.duration = parts[0]! * 3600 + parts[1]! * 60 + parts[2]!;
+      else if (parts.length === 2) next.duration = parts[0]! * 60 + parts[1]!;
+      else next.duration = parseInt(str.replace(/\D/g, ""), 10) || 0;
+    }
     if (field === "pace") next.pace = value as string;
-    if (field === "speed") next.speed = parseFloat(value as string) || 0;
-    if (field === "elevation") next.elevation = parseInt(value as string, 10) || 0;
-    if (field === "calories") next.calories = parseInt(value as string, 10) || 0;
-    onChange(next);
-  };
-
-  const EditableValue = ({
-    value,
-    field,
-    parse = (v) => v,
-    format = (v) => String(v),
-  }: {
-    value: string | number;
-    field: keyof StravaActivity;
-    parse?: (v: string) => string | number;
-    format?: (v: string | number) => string;
-  }) => {
-    if (!onChange)
-      return <span>{format(value)}</span>;
-    return (
-      <input
-        type="text"
-        value={format(value)}
-        onChange={(e) => handleFieldChange(field, parse(e.target.value))}
-        className="w-full min-w-0 rounded bg-transparent px-1 py-0.5 text-inherit outline-none ring-1 ring-white/20 focus:ring-[var(--strava)]"
-        onClick={(e) => e.stopPropagation()}
-      />
-    );
+    if (field === "speed") next.speed = parseFloat(String(value).replace(/[^\d.]/g, "")) || 0;
+    if (field === "elevation") next.elevation = parseInt(String(value).replace(/\D/g, ""), 10) || 0;
+    if (field === "calories") next.calories = parseInt(String(value).replace(/\D/g, ""), 10) || 0;
+    const validated = validateActivity(next, field);
+    onChange(validated);
   };
 
   return (
     <div
-      className={`overflow-hidden rounded-xl bg-[#1a1a1a] text-white shadow-xl ${className}`}
-      style={{ ["--strava" as string]: STRAVA_ORANGE }}
+      className={`font-sans overflow-hidden rounded-2xl ${className}`}
+      style={{
+        background: isLight ? "rgba(255, 255, 255, 0.98)" : "rgba(20, 20, 20, 0.95)",
+        boxShadow: isLight
+          ? "0 4px 20px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.06)"
+          : "0 4px 20px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06)",
+      }}
     >
+      <div style={{ height: 2, backgroundColor: STRAVA_ORANGE }} />
       <div
-        className="h-16 bg-gradient-to-b from-[#2a2a2a] to-[#1a1a1a]"
-        style={{ borderTop: `3px solid ${STRAVA_ORANGE}` }}
-      />
-      <div className="space-y-4 px-4 pb-4">
-        <div className="flex items-center gap-2 -mt-2">
-          <span className="text-2xl">{ICONS[activity.type]}</span>
-          <h2 className="font-semibold text-lg truncate flex-1 min-w-0">
-            {onChange ? (
-              <input
-                type="text"
-                value={activity.routeName}
-                onChange={(e) => handleFieldChange("routeName", e.target.value)}
-                className="w-full bg-transparent outline-none focus:ring-0 border-b border-white/20 focus:border-[var(--strava)]"
-              />
-            ) : (
-              activity.routeName
-            )}
-          </h2>
-        </div>
+        className="relative overflow-hidden"
+        style={{
+          backgroundColor: isLight ? "#f4f4f5" : "#141414",
+          padding: "10px",
+        }}
+      >
+        <RouteMap seed={routeSeed} width={284} height={96} />
+      </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <Metric
-            label="Distance"
-            value={distanceDisplay}
-            editable={onChange}
-            onEdit={(v) => {
-              const parsed = parseFloat(v) || parseFloat(v.replace("m", "")) / 1000;
-              if (!isNaN(parsed)) handleFieldChange("distance", parsed);
-            }}
+      <div className="px-4 py-3 space-y-3">
+        {onChange ? (
+          <input
+            type="text"
+            value={activity.routeName}
+            onChange={(e) => handleFieldChange("routeName", e.target.value)}
+            placeholder="Activity name"
+            className={`w-full text-xs bg-transparent border-b outline-none pb-1 focus:border-[#FC4C02] ${
+              isLight
+                ? "text-zinc-500 border-zinc-200 placeholder:text-zinc-400"
+                : "text-white/60 border-white/10 placeholder:text-white/40"
+            }`}
           />
-          <Metric
-            label="Duration"
-            value={formattedDuration}
-            editable={onChange}
-            onEdit={(v) => {
-              const parts = v.split(":").map(Number);
-              let s = 0;
-              if (parts.length === 3) s = parts[0]! * 3600 + parts[1]! * 60 + parts[2]!;
-              else if (parts.length === 2) s = parts[0]! * 60 + parts[1]!;
-              else s = parseInt(v, 10) || 0;
-              if (s > 0) handleFieldChange("duration", s);
-            }}
-          />
-          {activity.pace != null && (
-            <Metric
-              label={activity.type === "swim" ? "Pace /100m" : "Pace"}
-              value={activity.pace}
-              editable={onChange}
-              onEdit={(v) => handleFieldChange("pace", v)}
-            />
-          )}
-          {activity.speed != null && (
-            <Metric
-              label="Avg Speed"
-              value={`${activity.speed} km/h`}
-              editable={onChange}
-              onEdit={(v) => {
-                const n = parseFloat(v.replace(/[^\d.]/g, ""));
-                if (!isNaN(n)) handleFieldChange("speed", n);
-              }}
-            />
-          )}
-          {activity.elevation != null && (
-            <Metric
-              label="Elev Gain"
-              value={`${activity.elevation} m`}
-              editable={onChange}
-              onEdit={(v) => {
-                const n = parseInt(v.replace(/\D/g, ""), 10);
-                if (!isNaN(n)) handleFieldChange("elevation", n);
-              }}
-            />
-          )}
-          {activity.calories != null && (
-            <Metric
-              label="Calories"
-              value={`${activity.calories}`}
-              editable={onChange}
-              onEdit={(v) => {
-                const n = parseInt(v.replace(/\D/g, ""), 10);
-                if (!isNaN(n)) handleFieldChange("calories", n);
-              }}
-            />
-          )}
-        </div>
+        ) : (
+          <p className={`text-xs truncate ${isLight ? "text-zinc-500" : "text-white/50"}`}>{activity.routeName}</p>
+        )}
+
+        {/* Main stats row - Strava style: Distance, Time, Pace/Speed/Elevation */}
+        {(() => {
+          const thirdStat =
+            activity.type === "run" || activity.type === "swim"
+              ? {
+                  label: activity.type === "swim" ? "PACE /100m" : "PACE",
+                  value: activity.pace ?? "—",
+                  field: "pace" as const,
+                }
+              : activity.type === "ride"
+                ? { label: "AVG SPEED", value: `${activity.speed ?? 0} km/h`, field: "speed" as const }
+                : { label: "ELEVATION", value: `${activity.elevation ?? 0} m`, field: "elevation" as const };
+          return (
+            <div className="grid grid-cols-3 gap-4">
+              <StatBlock
+                theme={theme}
+                label="DISTANCE"
+                value={distanceDisplay}
+                editable={!!onChange}
+                onEdit={(v) => {
+                  const num = parseFloat(v.replace(/[^\d.]/g, "")) || 0;
+                  const isMeters = v.includes("m") || (activity.type === "swim" && num >= 100);
+                  if (!isNaN(num)) handleFieldChange("distance", isMeters ? num / 1000 : num);
+                }}
+              />
+              <StatBlock
+                theme={theme}
+                label="TIME"
+                value={formattedDuration}
+                editable={!!onChange}
+                onEdit={(v) => {
+                  const parts = v.split(":").map(Number);
+                  let s = 0;
+                  if (parts.length === 3) s = parts[0]! * 3600 + parts[1]! * 60 + parts[2]!;
+                  else if (parts.length === 2) s = parts[0]! * 60 + parts[1]!;
+                  else s = parseInt(v, 10) || 0;
+                  if (s > 0) handleFieldChange("duration", s);
+                }}
+              />
+              <StatBlock
+                theme={theme}
+                label={thirdStat.label}
+                value={thirdStat.value}
+                editable={!!onChange}
+                onEdit={(v) => {
+                  if (thirdStat.field === "elevation") {
+                    const n = parseInt(v.replace(/\D/g, ""), 10);
+                    if (!isNaN(n)) handleFieldChange("elevation", n);
+                  } else if (thirdStat.field === "speed") {
+                    const n = parseFloat(v.replace(/[^\d.]/g, ""));
+                    if (!isNaN(n)) handleFieldChange("speed", n);
+                  } else {
+                    handleFieldChange("pace", v);
+                  }
+                }}
+              />
+            </div>
+          );
+        })()}
+      </div>
+
+      <div
+        className="flex items-center justify-center py-2"
+        style={{ borderTop: isLight ? "1px solid rgba(0,0,0,0.08)" : "1px solid rgba(255,255,255,0.08)" }}
+      >
+        <span className="text-sm font-semibold tracking-tight" style={{ color: STRAVA_ORANGE }}>
+          strava
+        </span>
       </div>
     </div>
   );
 }
 
-function Metric({
+function StatBlock({
+  theme = "dark",
   label,
   value,
   editable,
   onEdit,
 }: {
+  theme?: "light" | "dark";
   label: string;
   value: string;
   editable?: boolean;
@@ -181,46 +191,56 @@ function Metric({
 }) {
   const [editing, setEditing] = useState(false);
   const [innerValue, setInnerValue] = useState(value);
+  const isLight = theme === "light";
+  useEffect(() => {
+    if (!editing) setInnerValue(value);
+  }, [value, editing]);
 
   const handleBlur = () => {
     setEditing(false);
     onEdit?.(innerValue);
   };
 
-  if (!editable)
+  const labelClass = `text-[10px] font-medium uppercase tracking-widest mb-0.5 ${isLight ? "text-zinc-500" : "text-white/40"}`;
+  const valueClass = `text-base font-semibold ${isLight ? "text-zinc-900" : "text-white"}`;
+
+  if (!editable) {
     return (
       <div>
-        <p className="text-xs text-white/60 uppercase tracking-wider">{label}</p>
-        <p className="font-semibold">{value}</p>
+        <p className={labelClass}>{label}</p>
+        <p className={valueClass}>{value}</p>
       </div>
     );
+  }
 
-  if (editing)
+  if (editing) {
     return (
       <div>
-        <p className="text-xs text-white/60 uppercase tracking-wider">{label}</p>
+        <p className={labelClass}>{label}</p>
         <input
           autoFocus
           value={innerValue}
           onChange={(e) => setInnerValue(e.target.value)}
           onBlur={handleBlur}
           onKeyDown={(e) => e.key === "Enter" && handleBlur()}
-          className="w-full rounded bg-white/10 px-2 py-1 text-sm outline-none focus:ring-1 focus:ring-[var(--strava)]"
+          className={`w-full text-base font-semibold rounded px-2 py-0.5 outline-none focus:ring-1 focus:ring-[#FC4C02] ${
+            isLight ? "text-zinc-900 bg-zinc-100" : "text-white bg-white/10"
+          }`}
         />
       </div>
     );
+  }
 
   return (
     <div
-      className="cursor-pointer rounded px-2 py-1 -mx-2 -my-1 hover:bg-white/5 transition-colors"
+      className={`cursor-pointer -mx-1 px-1 py-0.5 rounded ${isLight ? "hover:bg-zinc-100" : "hover:bg-white/5"}`}
       onClick={() => {
         setInnerValue(value);
         setEditing(true);
       }}
     >
-      <p className="text-xs text-white/60 uppercase tracking-wider">{label}</p>
-      <p className="font-semibold">{value}</p>
+      <p className={labelClass}>{label}</p>
+      <p className={valueClass}>{value}</p>
     </div>
   );
 }
-

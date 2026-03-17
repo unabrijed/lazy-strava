@@ -1,6 +1,55 @@
 import type { ActivityType, StravaActivity } from "./constants";
 import { ROUTE_NAMES } from "./constants";
 
+/** Stable default activity for hydration (no random/Date). */
+export function getDefaultActivity(type: ActivityType = "run"): StravaActivity {
+  const base = { activityDate: "2025-03-15" };
+  switch (type) {
+    case "run":
+      return {
+        ...base,
+        type: "run",
+        routeName: ROUTE_NAMES.run[0]!,
+        distance: 5.2,
+        duration: 1620,
+        pace: "5:12",
+        elevation: 85,
+        calories: 420,
+      };
+    case "ride":
+      return {
+        ...base,
+        type: "ride",
+        routeName: ROUTE_NAMES.ride[0]!,
+        distance: 42.5,
+        duration: 5400,
+        speed: 28.3,
+        elevation: 320,
+        calories: 980,
+      };
+    case "swim":
+      return {
+        ...base,
+        type: "swim",
+        routeName: ROUTE_NAMES.swim[0]!,
+        distance: 1.5,
+        duration: 2160,
+        pace: "2:00",
+        calories: 260,
+      };
+    case "hike":
+      return {
+        ...base,
+        type: "hike",
+        routeName: ROUTE_NAMES.hike[0]!,
+        distance: 12.5,
+        duration: 10800,
+        elevation: 650,
+        calories: 720,
+      };
+  }
+}
+
 function randomBetween(min: number, max: number): number {
   return Math.random() * (max - min) + min;
 }
@@ -29,7 +78,14 @@ function secondsToDuration(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+function randomActivityDate(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - Math.floor(Math.random() * 7));
+  return d.toISOString().slice(0, 10);
+}
+
 export function generateRandomActivity(type: ActivityType): StravaActivity {
+  const base = { activityDate: randomActivityDate() };
   switch (type) {
     case "run": {
       const distance = Math.round(randomBetween(3, 15) * 10) / 10;
@@ -38,6 +94,7 @@ export function generateRandomActivity(type: ActivityType): StravaActivity {
       const elevation = randomInt(20, 200);
       const calories = Math.round(durationSec * 0.1 + distance * 60);
       return {
+        ...base,
         type: "run",
         routeName: randomFrom(ROUTE_NAMES.run),
         distance,
@@ -54,6 +111,7 @@ export function generateRandomActivity(type: ActivityType): StravaActivity {
       const elevation = randomInt(100, 800);
       const calories = Math.round(durationSec * 0.08 + distance * 25);
       return {
+        ...base,
         type: "ride",
         routeName: randomFrom(ROUTE_NAMES.ride),
         distance,
@@ -70,6 +128,7 @@ export function generateRandomActivity(type: ActivityType): StravaActivity {
       const durationSec = (distanceM / 100) * pacePer100m * 60;
       const calories = Math.round(durationSec * 0.12);
       return {
+        ...base,
         type: "swim",
         routeName: randomFrom(ROUTE_NAMES.swim),
         distance,
@@ -85,6 +144,7 @@ export function generateRandomActivity(type: ActivityType): StravaActivity {
       const elevation = randomInt(200, 1200);
       const calories = Math.round(durationSec * 0.06 + elevation * 0.5);
       return {
+        ...base,
         type: "hike",
         routeName: randomFrom(ROUTE_NAMES.hike),
         distance,
@@ -98,4 +158,15 @@ export function generateRandomActivity(type: ActivityType): StravaActivity {
 
 export function formatDuration(seconds: number): string {
   return secondsToDuration(seconds);
+}
+
+/** Compact format for overlay: "29m 20s" */
+export function formatDurationCompact(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0) {
+    return `${h}h ${m}m ${s}s`;
+  }
+  return `${m}m ${s}s`;
 }

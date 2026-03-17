@@ -9,6 +9,7 @@ export interface StravaActivity {
   speed?: number;
   elevation?: number;
   calories?: number;
+  activityDate?: string; // ISO date string
 }
 
 export const STRAVA_ORANGE = "#FC4C02";
