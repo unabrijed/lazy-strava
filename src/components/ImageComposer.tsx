@@ -10,9 +10,6 @@ const STORY_WIDTH = 1080;
 const STORY_HEIGHT = 1920;
 
 const SCALE_MIN = 0.4;
-const SCALE_MAX = 1.5;
-const SCALE_STEP = 0.1;
-const ROTATE_STEP = 15;
 
 type PositionPreset =
   | "top-left"
@@ -42,52 +39,97 @@ interface ImageComposerProps {
   statsLayout: "horizontal" | "vertical";
   statsTheme: "light" | "dark";
   exportRef?: React.RefObject<HTMLDivElement | null>;
+  gradientRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-function SizeRotateControls({
-  label,
+const LAYER_DIMS: Record<LayerId, { w: number; h: number }> = {
+  card: { w: 320, h: 220 },
+  route: { w: 224, h: 96 },
+  stats: { w: 180, h: 160 },
+};
+
+function TransformableLayer({
+  pos,
   scale,
   rotation,
-  onScaleChange,
-  onRotateChange,
+  dims,
+  layerId,
+  selected,
+  onPointerDown,
+  onResizeDown,
+  onRotateDown,
+  onPointerMove,
+  onPointerUp,
+  className = "",
+  children,
 }: {
-  label: string;
+  pos: { x: number; y: number };
   scale: number;
   rotation: number;
-  onScaleChange: (delta: number) => void;
-  onRotateChange: (delta: number) => void;
+  dims: { w: number; h: number };
+  layerId: LayerId;
+  selected: boolean;
+  onPointerDown: (e: React.PointerEvent) => void;
+  onResizeDown: (e: React.PointerEvent) => void;
+  onRotateDown: (e: React.PointerEvent) => void;
+  onPointerMove: (e: React.PointerEvent) => void;
+  onPointerUp: (e: React.PointerEvent) => void;
+  className?: string;
+  children: React.ReactNode;
 }) {
+  const { w, h } = dims;
   return (
-    <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
-      <span className="text-xs text-zinc-500 w-14 sm:w-16 truncate">{label}</span>
-      <div className="flex items-center rounded-full bg-zinc-100 border border-zinc-200 overflow-hidden">
-        <button
-          type="button"
-          aria-label="Decrease size"
-          onClick={() => onScaleChange(-SCALE_STEP)}
-          className="min-w-[44px] min-h-[44px] sm:min-w-[40px] sm:min-h-[40px] flex items-center justify-center text-zinc-600 hover:bg-zinc-200 active:bg-zinc-300 transition-colors text-lg font-medium"
-        >
-          −
-        </button>
-        <button
-          type="button"
-          aria-label="Increase size"
-          onClick={() => onScaleChange(SCALE_STEP)}
-          className="min-w-[44px] min-h-[44px] sm:min-w-[40px] sm:min-h-[40px] flex items-center justify-center text-zinc-600 hover:bg-zinc-200 active:bg-zinc-300 transition-colors text-lg font-medium"
-        >
-          +
-        </button>
-      </div>
-      <button
-        type="button"
-        aria-label="Rotate"
-        onClick={() => onRotateChange(ROTATE_STEP)}
-        className="min-w-[44px] min-h-[44px] sm:min-w-[40px] sm:min-h-[40px] flex items-center justify-center rounded-full bg-zinc-100 border border-zinc-200 text-zinc-600 hover:bg-zinc-200 active:bg-zinc-300 transition-colors"
+    <div
+      className={`absolute select-none z-10 ${className}`}
+      data-layer={layerId}
+      style={{
+        left: `${pos.x * 100}%`,
+        top: `${pos.y * 100}%`,
+        width: w,
+        minHeight: h,
+        transform: `translate(-50%, -50%)`,
+      }}
+    >
+      <div
+        className={`cursor-move ${selected ? "ring-2 ring-[#FC4C02] ring-offset-2 rounded-2xl" : ""}`}
+        style={{
+          transform: `scale(${scale}) rotate(${rotation}deg)`,
+          transformOrigin: "center center",
+        }}
+        onPointerDown={onPointerDown}
       >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-        </svg>
-      </button>
+        {children}
+      </div>
+      {selected && (
+        <>
+          <div
+            className="absolute right-0 bottom-0 w-8 h-8 -mr-2 -mb-2 rounded-full bg-white border-2 border-[#FC4C02] cursor-nwse-resize touch-none flex items-center justify-center"
+            style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.2)" }}
+            onPointerDown={onResizeDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+            aria-label="Drag to resize"
+          >
+            <svg className="w-4 h-4 text-[#FC4C02]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+            </svg>
+          </div>
+          <div
+            className="absolute left-1/2 -top-10 w-8 h-8 -translate-x-1/2 rounded-full bg-white border-2 border-[#FC4C02] cursor-grab touch-none flex items-center justify-center active:cursor-grabbing"
+            style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.2)" }}
+            onPointerDown={onRotateDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+            aria-label="Drag to rotate"
+          >
+            <svg className="w-4 h-4 text-[#FC4C02]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -99,6 +141,7 @@ export function ImageComposer({
   statsLayout,
   statsTheme,
   exportRef,
+  gradientRef,
 }: ImageComposerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -142,12 +185,28 @@ export function ImageComposer({
   const [statsRotation, setStatsRotation] = useState(0);
 
   const [dragging, setDragging] = useState<LayerId | null>(null);
+  const [resizing, setResizing] = useState<LayerId | null>(null);
+  const [rotating, setRotating] = useState<LayerId | null>(null);
   const [selectedLayer, setSelectedLayer] = useState<LayerId | null>(null);
   const dragStartRef = useRef<{
     posX: number;
     posY: number;
     clientX: number;
     clientY: number;
+    target: LayerId;
+  } | null>(null);
+  const resizeStartRef = useRef<{
+    scale0: number;
+    dist0: number;
+    cx: number;
+    cy: number;
+    target: LayerId;
+  } | null>(null);
+  const rotateStartRef = useRef<{
+    rot0: number;
+    angle0: number;
+    cx: number;
+    cy: number;
     target: LayerId;
   } | null>(null);
 
@@ -202,8 +261,50 @@ export function ImageComposer({
 
   const endDrag = useCallback(() => {
     setDragging(null);
+    setResizing(null);
+    setRotating(null);
     dragStartRef.current = null;
+    resizeStartRef.current = null;
+    rotateStartRef.current = null;
   }, []);
+
+  const startResize = useCallback(
+    (e: React.PointerEvent, target: LayerId) => {
+      e.preventDefault();
+      e.stopPropagation();
+      (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const pos = target === "card" ? position : target === "route" ? routePos : statsPos;
+      const cx = rect.left + pos.x * rect.width;
+      const cy = rect.top + pos.y * rect.height;
+      const dist = Math.hypot(e.clientX - cx, e.clientY - cy);
+      const scale0 = target === "card" ? cardScale : target === "route" ? routeScale : statsScale;
+      setResizing(target);
+      setSelectedLayer(target);
+      resizeStartRef.current = { scale0, dist0: Math.max(dist, 20), cx, cy, target };
+    },
+    [position, routePos, statsPos, cardScale, routeScale, statsScale]
+  );
+
+  const startRotate = useCallback(
+    (e: React.PointerEvent, target: LayerId) => {
+      e.preventDefault();
+      e.stopPropagation();
+      (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const pos = target === "card" ? position : target === "route" ? routePos : statsPos;
+      const cx = rect.left + pos.x * rect.width;
+      const cy = rect.top + pos.y * rect.height;
+      const angle0 = Math.atan2(e.clientY - cy, e.clientX - cx);
+      const rot0 = target === "card" ? cardRotation : target === "route" ? routeRotation : statsRotation;
+      setRotating(target);
+      setSelectedLayer(target);
+      rotateStartRef.current = { rot0, angle0, cx, cy, target };
+    },
+    [position, routePos, statsPos, cardRotation, routeRotation, statsRotation]
+  );
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent, target: LayerId) => {
@@ -217,7 +318,25 @@ export function ImageComposer({
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
-      if (dragging) updateDrag(e.clientX, e.clientY);
+      if (dragging) {
+        updateDrag(e.clientX, e.clientY);
+      } else if (resizeStartRef.current) {
+        const { scale0, dist0, cx, cy, target } = resizeStartRef.current;
+        const dist = Math.hypot(e.clientX - cx, e.clientY - cy);
+        const ratio = dist / dist0;
+        const newScale = clampScale(scale0 * ratio);
+        if (target === "card") setCardScale(newScale);
+        else if (target === "route") setRouteScale(newScale);
+        else setStatsScale(newScale);
+      } else if (rotateStartRef.current) {
+        const { rot0, angle0, cx, cy, target } = rotateStartRef.current;
+        const angle = Math.atan2(e.clientY - cy, e.clientX - cx);
+        const delta = (angle - angle0) * (180 / Math.PI);
+        const newRot = rot0 + delta;
+        if (target === "card") setCardRotation(newRot);
+        else if (target === "route") setRouteRotation(newRot);
+        else setStatsRotation(newRot);
+      }
     },
     [dragging, updateDrag]
   );
@@ -229,22 +348,29 @@ export function ImageComposer({
 
   const handleTouchStart = useCallback(
     (e: React.TouchEvent) => {
-      if (e.touches.length === 2 && selectedLayer) {
-        e.preventDefault();
+      if (e.touches.length === 2) {
         const t0 = e.touches[0]!;
         const t1 = e.touches[1]!;
-        const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
-        const angle = Math.atan2(t1.clientY - t0.clientY, t1.clientX - t0.clientX);
-        pinchRef.current = {
-          layer: selectedLayer,
-          dist0: dist,
-          angle0: angle,
-          scale0: getScale(selectedLayer),
-          rot0: getRotation(selectedLayer),
-        };
+        const midX = (t0.clientX + t1.clientX) / 2;
+        const midY = (t0.clientY + t1.clientY) / 2;
+        const hitEl = document.elementFromPoint(midX, midY);
+        const layerEl = hitEl?.closest("[data-layer]");
+        const layer = layerEl?.getAttribute("data-layer") as LayerId | null;
+        if (layer && (layer === "card" || layer === "route" || layer === "stats")) {
+          e.preventDefault();
+          const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+          const angle = Math.atan2(t1.clientY - t0.clientY, t1.clientX - t0.clientX);
+          pinchRef.current = {
+            layer,
+            dist0: dist,
+            angle0: angle,
+            scale0: getScale(layer),
+            rot0: getRotation(layer),
+          };
+        }
       }
     },
-    [selectedLayer, cardScale, routeScale, statsScale, cardRotation, routeRotation, statsRotation]
+    [cardScale, routeScale, statsScale, cardRotation, routeRotation, statsRotation]
   );
 
   const handleTouchMove = useCallback(
@@ -265,7 +391,7 @@ export function ImageComposer({
   );
 
   useEffect(() => {
-    if (!dragging) return;
+    if (!dragging && !resizing && !rotating) return;
     const onUp = () => endDrag();
     window.addEventListener("mouseup", onUp);
     window.addEventListener("touchend", onUp);
@@ -273,7 +399,7 @@ export function ImageComposer({
       window.removeEventListener("mouseup", onUp);
       window.removeEventListener("touchend", onUp);
     };
-  }, [dragging, endDrag]);
+  }, [dragging, resizing, rotating, endDrag]);
 
   const touchMoveHandlerRef = useRef<((e: TouchEvent) => void) | null>(null);
 
@@ -295,7 +421,7 @@ export function ImageComposer({
           const { layer, dist0, angle0, scale0, rot0 } = pinchRef.current;
           const scaleDelta = dist / dist0;
           const rotDelta = (angle - angle0) * (180 / Math.PI);
-          const newScale = Math.max(SCALE_MIN, Math.min(SCALE_MAX, scale0 * scaleDelta));
+          const newScale = Math.max(SCALE_MIN, scale0 * scaleDelta);
           const newRot = rot0 + rotDelta;
           if (layer === "card") {
             setCardScale(newScale);
@@ -314,7 +440,7 @@ export function ImageComposer({
     }
   }, []);
 
-  const clampScale = (s: number) => Math.max(SCALE_MIN, Math.min(SCALE_MAX, s));
+  const clampScale = (s: number) => Math.max(SCALE_MIN, s);
 
   const routeSeed =
     (activity.routeName + activity.distance + activity.duration)
@@ -327,6 +453,7 @@ export function ImageComposer({
       onPointerMove={handlePointerMove}
       onPointerUp={endDrag}
       onPointerLeave={endDrag}
+      style={{ touchAction: "none" }}
     >
       <div className="flex flex-wrap gap-2 items-center">
         <span className="text-sm text-zinc-500">Position:</span>
@@ -335,42 +462,17 @@ export function ImageComposer({
             key={p.id}
             type="button"
             onClick={() => applyPreset(p.id)}
-            className="rounded-lg bg-zinc-100 px-3 py-2 min-h-[44px] sm:min-h-0 sm:py-1.5 text-xs text-zinc-600 hover:bg-zinc-200 transition-colors border border-zinc-200"
+            aria-label={`Position ${p.label}`}
+            className="rounded-lg bg-zinc-100 px-3 py-2 min-h-[44px] sm:min-h-0 sm:py-1.5 text-xs text-zinc-600 hover:bg-zinc-200 transition-colors border border-zinc-200 focus-visible:ring-2 focus-visible:ring-[#FC4C02] focus-visible:ring-offset-2"
           >
             {p.label}
           </button>
         ))}
       </div>
 
-      <div className="flex flex-col gap-3">
-        <p className="text-xs text-zinc-500">Size & rotate — tap the element, then use buttons or pinch on mobile:</p>
-        {cardStyle === "map" ? (
-          <SizeRotateControls
-            label="Card"
-            scale={cardScale}
-            rotation={cardRotation}
-            onScaleChange={(d) => setCardScale((s) => clampScale(s + d))}
-            onRotateChange={(d) => setCardRotation((r) => r + d)}
-          />
-        ) : (
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-6">
-            <SizeRotateControls
-              label="Route"
-              scale={routeScale}
-              rotation={routeRotation}
-              onScaleChange={(d) => setRouteScale((s) => clampScale(s + d))}
-              onRotateChange={(d) => setRouteRotation((r) => r + d)}
-            />
-            <SizeRotateControls
-              label="Stats"
-              scale={statsScale}
-              rotation={statsRotation}
-              onScaleChange={(d) => setStatsScale((s) => clampScale(s + d))}
-              onRotateChange={(d) => setStatsRotation((r) => r + d)}
-            />
-          </div>
-        )}
-      </div>
+      <p className="text-xs text-zinc-500">
+        Pinch directly on any element to resize and rotate. Or tap to select, then drag the handles.
+      </p>
 
       <div
         ref={wrapperRefCallback}
@@ -405,46 +507,69 @@ export function ImageComposer({
                   className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none"
                 />
               ) : (
-                <div className="absolute inset-0 bg-linear-to-b from-zinc-200 to-zinc-300" />
+                <div
+                  ref={gradientRef}
+                  className="absolute inset-0 bg-linear-to-b from-zinc-200 to-zinc-300 cursor-default"
+                  onClick={() => setSelectedLayer(null)}
+                />
+              )}
+              {backgroundImage && (
+                <div
+                  className="absolute inset-0 z-[1] cursor-default"
+                  onClick={() => setSelectedLayer(null)}
+                  aria-hidden
+                />
               )}
 
               {cardStyle === "map" ? (
-                <div
-                  className="absolute cursor-move select-none"
-                  style={{
-                    left: `${position.x * 100}%`,
-                    top: `${position.y * 100}%`,
-                    width: 320,
-                    transform: `translate(-50%, -50%) scale(${cardScale}) rotate(${cardRotation}deg)`,
-                  }}
+                <TransformableLayer
+                  layerId="card"
+                  pos={position}
+                  scale={cardScale}
+                  rotation={cardRotation}
+                  dims={LAYER_DIMS.card}
+                  selected={selectedLayer === "card"}
                   onPointerDown={(e) => handlePointerDown(e, "card")}
+                  onResizeDown={(e) => startResize(e, "card")}
+                  onRotateDown={(e) => startRotate(e, "card")}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={endDrag}
                 >
-                  <StravaCard activity={activity} isCompact theme={statsTheme} />
-                </div>
+                  <StravaCard activity={activity} theme={statsTheme} />
+                </TransformableLayer>
               ) : (
                 <>
-                  <div
-                    className="absolute cursor-move select-none p-2"
-                    style={{
-                      left: `${routePos.x * 100}%`,
-                      top: `${routePos.y * 100}%`,
-                      transform: `translate(-50%, -50%) scale(${routeScale}) rotate(${routeRotation}deg)`,
-                    }}
+                  <TransformableLayer
+                    layerId="route"
+                    pos={routePos}
+                    scale={routeScale}
+                    rotation={routeRotation}
+                    dims={LAYER_DIMS.route}
+                    selected={selectedLayer === "route"}
                     onPointerDown={(e) => handlePointerDown(e, "route")}
+                    onResizeDown={(e) => startResize(e, "route")}
+                    onRotateDown={(e) => startRotate(e, "route")}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={endDrag}
+                    className="p-2"
                   >
                     <RouteMap seed={routeSeed} width={200} height={80} />
-                  </div>
-                  <div
-                    className="absolute cursor-move select-none"
-                    style={{
-                      left: `${statsPos.x * 100}%`,
-                      top: `${statsPos.y * 100}%`,
-                      transform: `translate(-50%, -50%) scale(${statsScale}) rotate(${statsRotation}deg)`,
-                    }}
+                  </TransformableLayer>
+                  <TransformableLayer
+                    layerId="stats"
+                    pos={statsPos}
+                    scale={statsScale}
+                    rotation={statsRotation}
+                    dims={LAYER_DIMS.stats}
+                    selected={selectedLayer === "stats"}
                     onPointerDown={(e) => handlePointerDown(e, "stats")}
+                    onResizeDown={(e) => startResize(e, "stats")}
+                    onRotateDown={(e) => startRotate(e, "stats")}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={endDrag}
                   >
                     <StravaCardCompact activity={activity} layout={statsLayout} theme={statsTheme} />
-                  </div>
+                  </TransformableLayer>
                 </>
               )}
             </div>

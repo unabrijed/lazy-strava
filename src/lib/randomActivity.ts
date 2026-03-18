@@ -140,7 +140,7 @@ export function generateRandomActivity(type: ActivityType): StravaActivity {
     case "hike": {
       const distance = Math.round(randomBetween(5, 25) * 10) / 10;
       const paceMinPerKm = randomBetween(12, 20);
-      const durationSec = distance * 1000 * (paceMinPerKm / 60) * 60;
+      const durationSec = distance * paceMinPerKm * 60;
       const elevation = randomInt(200, 1200);
       const calories = Math.round(durationSec * 0.06 + elevation * 0.5);
       return {
@@ -149,6 +149,7 @@ export function generateRandomActivity(type: ActivityType): StravaActivity {
         routeName: randomFrom(ROUTE_NAMES.hike),
         distance,
         duration: Math.round(durationSec),
+        pace: formatPace(paceMinPerKm),
         elevation,
         calories,
       };

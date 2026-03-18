@@ -41,7 +41,7 @@ export function StravaCardCompact({ activity, layout, theme = "dark" }: StravaCa
   const distanceDisplay =
     activity.type === "swim" && activity.distance < 1
       ? `${(activity.distance * 1000).toFixed(0)} m`
-      : `${activity.distance.toFixed(2)} km`;
+      : `${activity.distance.toFixed(1)} km`;
 
   const stats: { label: string; value: string }[] =
     activity.type === "run"
@@ -84,7 +84,7 @@ export function StravaCardCompact({ activity, layout, theme = "dark" }: StravaCa
     return (
       <div className="flex items-center gap-6 font-sans">
         {stats.map((s) => (
-          <StatItem key={s.label} label={s.label} value={s.value} />
+          <StatItem key={`${s.label}-${s.value}`} label={s.label} value={s.value} />
         ))}
         <div className="flex items-center justify-center">{ICONS[activity.type]}</div>
         <span className={`text-sm font-semibold uppercase tracking-wide ${brandColor}`} style={{ textShadow }}>STRAVA</span>
@@ -95,7 +95,7 @@ export function StravaCardCompact({ activity, layout, theme = "dark" }: StravaCa
   return (
     <div className="flex flex-col items-center gap-4 font-sans">
       {stats.map((s) => (
-        <StatItem key={s.label} label={s.label} value={s.value} />
+        <StatItem key={`${s.label}-${s.value}`} label={s.label} value={s.value} />
       ))}
       <div className="flex items-center justify-center">{ICONS[activity.type]}</div>
       <span className={`text-sm font-semibold uppercase tracking-wide ${brandColor}`} style={{ textShadow }}>STRAVA</span>

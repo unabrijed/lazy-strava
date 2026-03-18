@@ -10,7 +10,6 @@ import { RouteMap } from "./RouteMap";
 interface StravaCardProps {
   activity: StravaActivity;
   onChange?: (activity: StravaActivity) => void;
-  isCompact?: boolean;
   theme?: "light" | "dark";
   className?: string;
 }
@@ -22,7 +21,6 @@ interface StravaCardProps {
 export function StravaCard({
   activity,
   onChange,
-  isCompact = false,
   theme = "dark",
   className = "",
 }: StravaCardProps) {

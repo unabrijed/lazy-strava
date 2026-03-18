@@ -19,9 +19,11 @@ function formatDurationForInput(seconds: number): string {
 
 export function ActivityFieldsForm({ activity, onActivityChange }: ActivityFieldsFormProps) {
   const [durationInput, setDurationInput] = useState(() => formatDurationForInput(activity.duration));
+  const [durationError, setDurationError] = useState(false);
 
   useEffect(() => {
     setDurationInput(formatDurationForInput(activity.duration));
+    setDurationError(false);
   }, [activity.duration]);
 
   const applyChange = (field: keyof StravaActivity, value: string | number) => {
@@ -92,15 +94,30 @@ export function ActivityFieldsForm({ activity, onActivityChange }: ActivityField
           <input
             type="text"
             value={durationInput}
-            onChange={(e) => setDurationInput(e.target.value)}
+            onChange={(e) => {
+              setDurationInput(e.target.value);
+              setDurationError(false);
+            }}
             onBlur={() => {
               const sec = parseDurationToSec(durationInput);
-              if (sec > 0) applyChange("duration", sec);
-              else setDurationInput(formatDurationForInput(activity.duration));
+              if (sec > 0) {
+                applyChange("duration", sec);
+                setDurationError(false);
+              } else {
+                setDurationInput(formatDurationForInput(activity.duration));
+                setDurationError(true);
+              }
             }}
             placeholder="00:27:00"
             className={inputClass}
+            aria-invalid={durationError}
+            aria-describedby={durationError ? "duration-hint" : undefined}
           />
+          {durationError && (
+            <p id="duration-hint" className="mt-1 text-xs text-amber-600">
+              Use HH:MM:SS or MM:SS (e.g. 27:00 or 1:05:30)
+            </p>
+          )}
         </div>
 
         {(activity.type === "run" || activity.type === "swim" || activity.type === "hike") && (
@@ -114,7 +131,11 @@ export function ActivityFieldsForm({ activity, onActivityChange }: ActivityField
               onChange={(e) => applyChange("pace", e.target.value)}
               placeholder={activity.type === "swim" ? "2:00" : "5:30"}
               className={inputClass}
+              aria-describedby="pace-hint"
             />
+            <p id="pace-hint" className="mt-1 text-xs text-zinc-500">
+              Format: M:SS (e.g. 5:30)
+            </p>
           </div>
         )}
 

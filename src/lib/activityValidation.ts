@@ -195,8 +195,4 @@ export function validateActivity(
   return out;
 }
 
-export function parseDurationInput(val: string): number {
-  return parseDurationToSec(val);
-}
-
 export { parseDurationToSec, parsePaceToMinutes, minPerKmToPace };
