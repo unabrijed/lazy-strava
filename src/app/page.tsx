@@ -2,24 +2,25 @@
 
 import { useRef, useState, useCallback } from "react";
 import type { StravaActivity } from "@/lib/constants";
-import { generateRandomActivity, getDefaultActivity } from "@/lib/randomActivity";
+import { getDefaultActivity } from "@/lib/randomActivity";
 import { ActivityEditor } from "@/components/ActivityEditor";
 import { ImageComposer } from "@/components/ImageComposer";
 import { ExportButton } from "@/components/ExportButton";
+import { Logo } from "@/components/Logo";
+
+const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 
 export default function Home() {
   const [activity, setActivity] = useState<StravaActivity>(() =>
     getDefaultActivity("run")
   );
-  const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+  const [backgroundMedia, setBackgroundMedia] = useState<{ url: string; width: number; height: number } | null>(null);
   const [cardStyle, setCardStyle] = useState<"map" | "compact">("map");
   const [statsLayout, setStatsLayout] = useState<"horizontal" | "vertical">("vertical");
   const [statsTheme, setStatsTheme] = useState<"light" | "dark">("light");
   const [uploadError, setUploadError] = useState<string | null>(null);
   const exportRef = useRef<HTMLDivElement | null>(null);
   const gradientRef = useRef<HTMLDivElement | null>(null);
-
-  const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 
   const handleFileUpload = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,7 +38,7 @@ export default function Home() {
         if (img.naturalWidth > 4096 || img.naturalHeight > 4096) {
           setUploadError("Image very large. Export may be slow. Consider resizing.");
         }
-        setBackgroundImage(url);
+        setBackgroundMedia({ url, width: img.naturalWidth, height: img.naturalHeight });
       };
       img.onerror = () => {
         URL.revokeObjectURL(url);
@@ -50,20 +51,25 @@ export default function Home() {
   );
 
   const clearImage = useCallback(() => {
-    if (backgroundImage) URL.revokeObjectURL(backgroundImage);
-    setBackgroundImage(null);
+    if (backgroundMedia) URL.revokeObjectURL(backgroundMedia.url);
+    setBackgroundMedia(null);
     setUploadError(null);
-  }, [backgroundImage]);
+  }, [backgroundMedia]);
 
   return (
     <div className="min-h-screen bg-white text-zinc-800 min-w-0">
       <header className="border-b border-zinc-200/80 px-4 sm:px-6 py-5 sm:py-6 bg-white/80 backdrop-blur-sm">
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900">
-          <span className="text-[#FC4C02]">Lazy</span> Strava
-        </h1>
-        <p className="mt-1.5 text-zinc-500 text-sm font-normal">
-          Flex without the sweat. Strava results, zero effort.
-        </p>
+        <div className="flex items-center gap-3 sm:gap-4">
+          <Logo className="w-10 h-10 sm:w-12 sm:h-12 drop-shadow-sm shrink-0" />
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900">
+              <span className="text-[#FC4C02]">Lazy</span> Strava
+            </h1>
+            <p className="mt-1 text-zinc-500 text-sm font-normal max-w-sm">
+              Flex without the sweat. Strava results, zero effort.
+            </p>
+          </div>
+        </div>
       </header>
 
       <main className="mx-auto max-w-2xl px-4 sm:px-6 py-6 sm:py-8 space-y-8 sm:space-y-10">
@@ -89,7 +95,7 @@ export default function Home() {
                 aria-describedby={uploadError ? "upload-error" : undefined}
               />
             </label>
-            {backgroundImage && (
+            {backgroundMedia && (
               <button
                 type="button"
                 onClick={clearImage}
@@ -203,7 +209,7 @@ export default function Home() {
           </div>
           <ImageComposer
             activity={activity}
-            backgroundImage={backgroundImage}
+            backgroundMedia={backgroundMedia}
             cardStyle={cardStyle}
             statsLayout={statsLayout}
             statsTheme={statsTheme}
@@ -213,8 +219,11 @@ export default function Home() {
           <div className="mt-4">
             <ExportButton
               composeRef={exportRef}
-              hasBackgroundImage={!!backgroundImage}
-              gradientRef={gradientRef}
+              hasBackgroundImage={!!backgroundMedia}
+              backgroundMediaUrl={backgroundMedia?.url}
+              filename={activity.routeName}
+              canvasWidth={backgroundMedia?.width}
+              canvasHeight={backgroundMedia?.height}
             />
           </div>
         </section>

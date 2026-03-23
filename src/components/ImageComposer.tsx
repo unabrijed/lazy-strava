@@ -10,6 +10,7 @@ const STORY_WIDTH = 1080;
 const STORY_HEIGHT = 1920;
 
 const SCALE_MIN = 0.4;
+const clampScale = (s: number) => Math.max(SCALE_MIN, s);
 
 type PositionPreset =
   | "top-left"
@@ -34,7 +35,7 @@ type LayerId = "card" | "route" | "stats";
 
 interface ImageComposerProps {
   activity: StravaActivity;
-  backgroundImage: string | null;
+  backgroundMedia?: { url: string; width: number; height: number } | null;
   cardStyle: "map" | "compact";
   statsLayout: "horizontal" | "vertical";
   statsTheme: "light" | "dark";
@@ -42,10 +43,10 @@ interface ImageComposerProps {
   gradientRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-const LAYER_DIMS: Record<LayerId, { w: number; h: number }> = {
+const LAYER_DIMS: Record<LayerId, { w: number | string; h: number | string }> = {
   card: { w: 320, h: 220 },
-  route: { w: 224, h: 96 },
-  stats: { w: 180, h: 160 },
+  route: { w: "max-content", h: "max-content" },
+  stats: { w: "max-content", h: "max-content" },
 };
 
 function TransformableLayer({
@@ -66,7 +67,7 @@ function TransformableLayer({
   pos: { x: number; y: number };
   scale: number;
   rotation: number;
-  dims: { w: number; h: number };
+  dims: { w: number | string; h: number | string };
   layerId: LayerId;
   selected: boolean;
   onPointerDown: (e: React.PointerEvent) => void;
@@ -87,15 +88,12 @@ function TransformableLayer({
         top: `${pos.y * 100}%`,
         width: w,
         minHeight: h,
-        transform: `translate(-50%, -50%)`,
+        transform: `translate(-50%, -50%) scale(${scale}) rotate(${rotation}deg)`,
+        transformOrigin: "center center",
       }}
     >
       <div
         className={`cursor-move touch-none ${selected ? "ring-2 ring-[#FC4C02] ring-offset-2 rounded-2xl" : ""}`}
-        style={{
-          transform: `scale(${scale}) rotate(${rotation}deg)`,
-          transformOrigin: "center center",
-        }}
         onPointerDown={onPointerDown}
       >
         {children}
@@ -103,8 +101,9 @@ function TransformableLayer({
       {selected && (
         <>
           <div
+            data-html2canvas-ignore="true"
             className="absolute right-0 bottom-0 w-8 h-8 -mr-2 -mb-2 rounded-full bg-white border-2 border-[#FC4C02] cursor-nwse-resize touch-none flex items-center justify-center"
-            style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.2)" }}
+            style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.2)", transform: `scale(${1 / Math.max(0.1, scale)})` }}
             onPointerDown={onResizeDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
@@ -116,8 +115,9 @@ function TransformableLayer({
             </svg>
           </div>
           <div
+            data-html2canvas-ignore="true"
             className="absolute left-1/2 -top-10 w-8 h-8 -translate-x-1/2 rounded-full bg-white border-2 border-[#FC4C02] cursor-grab touch-none flex items-center justify-center active:cursor-grabbing"
-            style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.2)" }}
+            style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.2)", transform: `scale(${1 / Math.max(0.1, scale)})` }}
             onPointerDown={onRotateDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
@@ -136,7 +136,7 @@ function TransformableLayer({
 
 export function ImageComposer({
   activity,
-  backgroundImage,
+  backgroundMedia,
   cardStyle,
   statsLayout,
   statsTheme,
@@ -147,11 +147,16 @@ export function ImageComposer({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.35);
 
+  const canvasWidth = backgroundMedia ? backgroundMedia.width : STORY_WIDTH;
+  const canvasHeight = backgroundMedia ? backgroundMedia.height : STORY_HEIGHT;
+
   const setRef = useCallback(
     (el: HTMLDivElement | null) => {
-      (containerRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
-      if (exportRef) {
-        (exportRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+      const cRef = containerRef as React.MutableRefObject<HTMLDivElement | null>;
+      cRef.current = el;
+      const eRef = exportRef as React.MutableRefObject<HTMLDivElement | null> | undefined;
+      if (eRef) {
+        eRef.current = el;
       }
     },
     [exportRef]
@@ -164,14 +169,14 @@ export function ImageComposer({
       const padding = 16;
       const w = Math.max(0, wrapper.clientWidth - padding);
       const h = Math.max(0, wrapper.clientHeight - padding);
-      const s = w > 0 && h > 0 ? Math.min(w / STORY_WIDTH, h / STORY_HEIGHT) : 0.35;
+      const s = w > 0 && h > 0 ? Math.min(w / canvasWidth, h / canvasHeight) : 0.35;
       setScale(Math.max(0.2, Math.min(1, s)));
     };
     updateScale();
     const ro = new ResizeObserver(updateScale);
     ro.observe(wrapper);
     return () => ro.disconnect();
-  }, []);
+  }, [canvasWidth, canvasHeight]);
 
   const [position, setPosition] = useState({ x: 0.5, y: 0.92 });
   const [routePos, setRoutePos] = useState({ x: 0.2, y: 0.25 });
@@ -342,10 +347,14 @@ export function ImageComposer({
     [dragging, updateDrag]
   );
 
-  const getScale = (layer: LayerId) =>
-    layer === "card" ? cardScale : layer === "route" ? routeScale : statsScale;
-  const getRotation = (layer: LayerId) =>
-    layer === "card" ? cardRotation : layer === "route" ? routeRotation : statsRotation;
+  const getScale = useCallback((layer: LayerId) =>
+    layer === "card" ? cardScale : layer === "route" ? routeScale : statsScale,
+    [cardScale, routeScale, statsScale]
+  );
+  const getRotation = useCallback((layer: LayerId) =>
+    layer === "card" ? cardRotation : layer === "route" ? routeRotation : statsRotation,
+    [cardRotation, routeRotation, statsRotation]
+  );
 
   const handleTouchStart = useCallback(
     (e: React.TouchEvent) => {
@@ -371,7 +380,7 @@ export function ImageComposer({
         }
       }
     },
-    [cardScale, routeScale, statsScale, cardRotation, routeRotation, statsRotation]
+    [getScale, getRotation]
   );
 
   const handleTouchMove = useCallback(
@@ -441,8 +450,6 @@ export function ImageComposer({
     }
   }, []);
 
-  const clampScale = (s: number) => Math.max(SCALE_MIN, s);
-
   const routeSeed =
     (activity.routeName + activity.distance + activity.duration)
       .split("")
@@ -477,7 +484,7 @@ export function ImageComposer({
       <div
         ref={wrapperRefCallback}
         className="mx-auto w-full max-w-[min(100vw-2rem,400px)] sm:max-w-[400px] rounded-xl border border-zinc-200 bg-zinc-100 p-2"
-        style={{ aspectRatio: `${STORY_WIDTH} / ${STORY_HEIGHT}` }}
+        style={{ aspectRatio: `${canvasWidth} / ${canvasHeight}` }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -487,8 +494,8 @@ export function ImageComposer({
           <div
             className="absolute left-0 top-0 overflow-hidden rounded-lg"
             style={{
-              width: STORY_WIDTH,
-              height: STORY_HEIGHT,
+              width: canvasWidth,
+              height: canvasHeight,
               transform: `scale(${scale})`,
               transformOrigin: "top left",
             }}
@@ -496,14 +503,26 @@ export function ImageComposer({
             <div
               ref={setRef}
               className="relative h-full w-full overflow-hidden"
-              style={{ width: STORY_WIDTH, height: STORY_HEIGHT }}
+              style={{ width: canvasWidth, height: canvasHeight }}
+              data-export-state={JSON.stringify({
+                canvasWidth,
+                canvasHeight,
+                cardStyle,
+                layers: cardStyle === "map"
+                  ? [{ id: "card", pos: position, scale: cardScale, rotation: cardRotation }]
+                  : [
+                      { id: "route", pos: routePos, scale: routeScale, rotation: routeRotation },
+                      { id: "stats", pos: statsPos, scale: statsScale, rotation: statsRotation },
+                    ],
+              })}
             >
-              {backgroundImage ? (
+              {backgroundMedia ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img
-                  src={backgroundImage}
+                  src={backgroundMedia.url}
                   alt="Background"
-                  width={STORY_WIDTH}
-                  height={STORY_HEIGHT}
+                  width={canvasWidth}
+                  height={canvasHeight}
                   className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none"
                 />
               ) : (
@@ -513,7 +532,7 @@ export function ImageComposer({
                   onClick={() => setSelectedLayer(null)}
                 />
               )}
-              {backgroundImage && (
+              {backgroundMedia && (
                 <div
                   className="absolute inset-0 z-[1] cursor-default"
                   onClick={() => setSelectedLayer(null)}
@@ -535,7 +554,9 @@ export function ImageComposer({
                   onPointerMove={handlePointerMove}
                   onPointerUp={endDrag}
                 >
-                  <StravaCard activity={activity} theme={statsTheme} />
+                  <div data-layer-content="card">
+                    <StravaCard activity={activity} theme={statsTheme} />
+                  </div>
                 </TransformableLayer>
               ) : (
                 <>
@@ -553,7 +574,9 @@ export function ImageComposer({
                     onPointerUp={endDrag}
                     className="p-2"
                   >
-                    <RouteMap seed={routeSeed} width={200} height={80} />
+                    <div data-layer-content="route">
+                      <RouteMap seed={routeSeed} width={200} height={80} />
+                    </div>
                   </TransformableLayer>
                   <TransformableLayer
                     layerId="stats"
@@ -568,7 +591,9 @@ export function ImageComposer({
                     onPointerMove={handlePointerMove}
                     onPointerUp={endDrag}
                   >
-                    <StravaCardCompact activity={activity} layout={statsLayout} theme={statsTheme} />
+                    <div data-layer-content="stats">
+                      <StravaCardCompact activity={activity} layout={statsLayout} theme={statsTheme} />
+                    </div>
                   </TransformableLayer>
                 </>
               )}

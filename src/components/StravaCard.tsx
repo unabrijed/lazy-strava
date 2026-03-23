@@ -114,49 +114,55 @@ export function StravaCard({
                 ? { label: "AVG SPEED", value: `${activity.speed ?? 0} km/h`, field: "speed" as const }
                 : { label: "ELEVATION", value: `${activity.elevation ?? 0} m`, field: "elevation" as const };
           return (
-            <div className="grid grid-cols-3 gap-4">
-              <StatBlock
-                theme={theme}
-                label="DISTANCE"
-                value={distanceDisplay}
-                editable={!!onChange}
-                onEdit={(v) => {
-                  const num = parseFloat(v.replace(/[^\d.]/g, "")) || 0;
-                  const isMeters = v.includes("m") || (activity.type === "swim" && num >= 100);
-                  if (!isNaN(num)) handleFieldChange("distance", isMeters ? num / 1000 : num);
-                }}
-              />
-              <StatBlock
-                theme={theme}
-                label="TIME"
-                value={formattedDuration}
-                editable={!!onChange}
-                onEdit={(v) => {
-                  const parts = v.split(":").map(Number);
-                  let s = 0;
-                  if (parts.length === 3) s = parts[0]! * 3600 + parts[1]! * 60 + parts[2]!;
-                  else if (parts.length === 2) s = parts[0]! * 60 + parts[1]!;
-                  else s = parseInt(v, 10) || 0;
-                  if (s > 0) handleFieldChange("duration", s);
-                }}
-              />
-              <StatBlock
-                theme={theme}
-                label={thirdStat.label}
-                value={thirdStat.value}
-                editable={!!onChange}
-                onEdit={(v) => {
-                  if (thirdStat.field === "elevation") {
-                    const n = parseInt(v.replace(/\D/g, ""), 10);
-                    if (!isNaN(n)) handleFieldChange("elevation", n);
-                  } else if (thirdStat.field === "speed") {
-                    const n = parseFloat(v.replace(/[^\d.]/g, ""));
-                    if (!isNaN(n)) handleFieldChange("speed", n);
-                  } else {
-                    handleFieldChange("pace", v);
-                  }
-                }}
-              />
+            <div className="flex w-full justify-between gap-3 overflow-hidden">
+              <div className="flex-1 min-w-0">
+                <StatBlock
+                  theme={theme}
+                  label="DISTANCE"
+                  value={distanceDisplay}
+                  editable={!!onChange}
+                  onEdit={(v) => {
+                    const num = parseFloat(v.replace(/[^\d.]/g, "")) || 0;
+                    const isMeters = v.includes("m") || (activity.type === "swim" && num >= 100);
+                    if (!isNaN(num)) handleFieldChange("distance", isMeters ? num / 1000 : num);
+                  }}
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <StatBlock
+                  theme={theme}
+                  label="TIME"
+                  value={formattedDuration}
+                  editable={!!onChange}
+                  onEdit={(v) => {
+                    const parts = v.split(":").map(Number);
+                    let s = 0;
+                    if (parts.length === 3) s = parts[0]! * 3600 + parts[1]! * 60 + parts[2]!;
+                    else if (parts.length === 2) s = parts[0]! * 60 + parts[1]!;
+                    else s = parseInt(v, 10) || 0;
+                    if (s > 0) handleFieldChange("duration", s);
+                  }}
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <StatBlock
+                  theme={theme}
+                  label={thirdStat.label}
+                  value={thirdStat.value}
+                  editable={!!onChange}
+                  onEdit={(v) => {
+                    if (thirdStat.field === "elevation") {
+                      const n = parseInt(v.replace(/\D/g, ""), 10);
+                      if (!isNaN(n)) handleFieldChange("elevation", n);
+                    } else if (thirdStat.field === "speed") {
+                      const n = parseFloat(v.replace(/[^\d.]/g, ""));
+                      if (!isNaN(n)) handleFieldChange("speed", n);
+                    } else {
+                      handleFieldChange("pace", v);
+                    }
+                  }}
+                />
+              </div>
             </div>
           );
         })()}
@@ -199,7 +205,7 @@ function StatBlock({
     onEdit?.(innerValue);
   };
 
-  const labelClass = `text-[10px] font-medium uppercase tracking-widest mb-0.5 ${isLight ? "text-zinc-500" : "text-white/40"}`;
+  const labelClass = `text-[10px] font-medium uppercase tracking-wider mb-0.5 ${isLight ? "text-zinc-500" : "text-white/40"}`;
   const valueClass = `text-base font-semibold ${isLight ? "text-zinc-900" : "text-white"}`;
 
   if (!editable) {

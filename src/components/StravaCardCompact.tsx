@@ -74,7 +74,7 @@ export function StravaCardCompact({ activity, layout, theme = "dark" }: StravaCa
   const brandColor = isLight ? "text-zinc-900" : "text-white";
 
   const StatItem = ({ label, value }: { label: string; value: string }) => (
-    <div className="text-center font-sans">
+    <div className="text-center font-sans whitespace-nowrap">
       <p className={`text-xs font-normal ${labelColor}`} style={{ textShadow }}>{label}</p>
       <p className={`text-lg font-semibold ${valueColor} mt-0.5`} style={{ textShadow }}>{value}</p>
     </div>
