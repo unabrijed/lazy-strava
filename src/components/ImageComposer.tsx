@@ -91,7 +91,7 @@ function TransformableLayer({
       }}
     >
       <div
-        className={`cursor-move ${selected ? "ring-2 ring-[#FC4C02] ring-offset-2 rounded-2xl" : ""}`}
+        className={`cursor-move touch-none ${selected ? "ring-2 ring-[#FC4C02] ring-offset-2 rounded-2xl" : ""}`}
         style={{
           transform: `scale(${scale}) rotate(${rotation}deg)`,
           transformOrigin: "center center",
@@ -309,6 +309,7 @@ export function ImageComposer({
   const handlePointerDown = useCallback(
     (e: React.PointerEvent, target: LayerId) => {
       e.preventDefault();
+      (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
       touchStartRef.current = { x: e.clientX, y: e.clientY, target };
       setSelectedLayer(target);
       startDrag(e.clientX, e.clientY, target);
@@ -453,7 +454,6 @@ export function ImageComposer({
       onPointerMove={handlePointerMove}
       onPointerUp={endDrag}
       onPointerLeave={endDrag}
-      style={{ touchAction: "none" }}
     >
       <div className="flex flex-wrap gap-2 items-center">
         <span className="text-sm text-zinc-500">Position:</span>
@@ -476,7 +476,7 @@ export function ImageComposer({
 
       <div
         ref={wrapperRefCallback}
-        className="mx-auto w-full max-w-[min(100vw-2rem,400px)] sm:max-w-[400px] rounded-xl border border-zinc-200 bg-zinc-100 p-2 touch-none"
+        className="mx-auto w-full max-w-[min(100vw-2rem,400px)] sm:max-w-[400px] rounded-xl border border-zinc-200 bg-zinc-100 p-2"
         style={{ aspectRatio: `${STORY_WIDTH} / ${STORY_HEIGHT}` }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}

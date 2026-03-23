@@ -1,5 +1,5 @@
 import type { ActivityType, StravaActivity } from "./constants";
-import { ROUTE_NAMES } from "./constants";
+import { DEFAULT_ROUTE_NAME, ROUTE_NAMES } from "./constants";
 
 /** Stable default activity for hydration (no random/Date). */
 export function getDefaultActivity(type: ActivityType = "run"): StravaActivity {
@@ -9,7 +9,7 @@ export function getDefaultActivity(type: ActivityType = "run"): StravaActivity {
       return {
         ...base,
         type: "run",
-        routeName: ROUTE_NAMES.run[0]!,
+        routeName: DEFAULT_ROUTE_NAME.run,
         distance: 5.2,
         duration: 1620,
         pace: "5:12",
@@ -20,7 +20,7 @@ export function getDefaultActivity(type: ActivityType = "run"): StravaActivity {
       return {
         ...base,
         type: "ride",
-        routeName: ROUTE_NAMES.ride[0]!,
+        routeName: DEFAULT_ROUTE_NAME.ride,
         distance: 42.5,
         duration: 5400,
         speed: 28.3,
@@ -31,7 +31,7 @@ export function getDefaultActivity(type: ActivityType = "run"): StravaActivity {
       return {
         ...base,
         type: "swim",
-        routeName: ROUTE_NAMES.swim[0]!,
+        routeName: DEFAULT_ROUTE_NAME.swim,
         distance: 1.5,
         duration: 2160,
         pace: "2:00",
@@ -41,9 +41,10 @@ export function getDefaultActivity(type: ActivityType = "run"): StravaActivity {
       return {
         ...base,
         type: "hike",
-        routeName: ROUTE_NAMES.hike[0]!,
+        routeName: DEFAULT_ROUTE_NAME.hike,
         distance: 12.5,
         duration: 10800,
+        pace: "14:24",
         elevation: 650,
         calories: 720,
       };

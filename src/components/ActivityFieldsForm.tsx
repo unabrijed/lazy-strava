@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import type { StravaActivity } from "@/lib/constants";
 import { validateActivity, parseDurationToSec } from "@/lib/activityValidation";
-import { ROUTE_NAMES } from "@/lib/constants";
+import { ACTIVITY_NAME_PRESET_GROUPS, ROUTE_NAMES } from "@/lib/constants";
 
 interface ActivityFieldsFormProps {
   activity: StravaActivity;
@@ -20,11 +20,16 @@ function formatDurationForInput(seconds: number): string {
 export function ActivityFieldsForm({ activity, onActivityChange }: ActivityFieldsFormProps) {
   const [durationInput, setDurationInput] = useState(() => formatDurationForInput(activity.duration));
   const [durationError, setDurationError] = useState(false);
+  const [nameGroupFilter, setNameGroupFilter] = useState<string>("all");
 
   useEffect(() => {
     setDurationInput(formatDurationForInput(activity.duration));
     setDurationError(false);
   }, [activity.duration]);
+
+  useEffect(() => {
+    setNameGroupFilter("all");
+  }, [activity.type]);
 
   const applyChange = (field: keyof StravaActivity, value: string | number) => {
     const next = { ...activity };
@@ -57,13 +62,16 @@ export function ActivityFieldsForm({ activity, onActivityChange }: ActivityField
           />
         </div>
 
-        <div>
+        <div className="sm:col-span-2">
           <label className="mb-1 block text-xs font-medium text-zinc-500">Activity name</label>
+          <p className="mb-2 text-xs text-zinc-500">
+            Type a custom name, or tap a suggestion below (by time of day).
+          </p>
           <input
             type="text"
             value={activity.routeName}
             onChange={(e) => applyChange("routeName", e.target.value)}
-            placeholder="e.g. Morning Run"
+            placeholder="Your title — e.g. Evening tempo run"
             className={inputClass}
             list="route-suggestions"
           />
@@ -72,6 +80,74 @@ export function ActivityFieldsForm({ activity, onActivityChange }: ActivityField
               <option key={name} value={name} />
             ))}
           </datalist>
+
+          <div className="mt-3 space-y-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <span className="text-xs font-medium text-zinc-600">Suggested names</span>
+              <label className="flex items-center gap-2 text-xs text-zinc-500">
+                <span className="shrink-0">Show:</span>
+                <select
+                  value={nameGroupFilter}
+                  onChange={(e) => setNameGroupFilter(e.target.value)}
+                  className="min-h-[44px] sm:min-h-0 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-[#FC4C02] focus:outline-none focus:ring-1 focus:ring-[#FC4C02]"
+                >
+                  <option value="all">All times</option>
+                  {ACTIVITY_NAME_PRESET_GROUPS[activity.type].map((g) => (
+                    <option key={g.label} value={g.label}>
+                      {g.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {nameGroupFilter === "all" ? (
+              <div className="space-y-3">
+                {ACTIVITY_NAME_PRESET_GROUPS[activity.type].map((group) => (
+                  <div key={group.label}>
+                    <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-zinc-400">
+                      {group.label}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {group.names.map((name) => (
+                        <button
+                          key={name}
+                          type="button"
+                          onClick={() => applyChange("routeName", name)}
+                          className={`min-h-[44px] rounded-full border px-3 py-2 text-left text-xs font-medium transition-colors touch-manipulation sm:min-h-0 sm:py-1.5 ${
+                            activity.routeName === name
+                              ? "border-[#FC4C02] bg-orange-50 text-zinc-900"
+                              : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 active:bg-zinc-50"
+                          }`}
+                        >
+                          {name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="-mx-1 flex gap-2 overflow-x-auto pb-1 pt-0.5 sm:flex-wrap">
+                {ACTIVITY_NAME_PRESET_GROUPS[activity.type]
+                  .find((g) => g.label === nameGroupFilter)
+                  ?.names.map((name) => (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => applyChange("routeName", name)}
+                      className={`min-h-[44px] shrink-0 rounded-full border px-3 py-2 text-left text-xs font-medium transition-colors touch-manipulation sm:min-h-0 sm:py-1.5 ${
+                        activity.routeName === name
+                          ? "border-[#FC4C02] bg-orange-50 text-zinc-900"
+                          : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 active:bg-zinc-50"
+                      }`}
+                    >
+                      {name}
+                    </button>
+                  ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
