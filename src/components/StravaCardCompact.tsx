@@ -37,11 +37,12 @@ const ICONS: Record<StravaActivity["type"], React.ReactNode> = {
 
 export function StravaCardCompact({ activity, layout, theme = "dark" }: StravaCardCompactProps) {
   const isLight = theme === "light";
-  const formattedTime = formatDurationCompact(activity.duration);
+  const formattedTime = formatDurationCompact(activity.duration ?? 0);
+  const d = activity.distance ?? 0;
   const distanceDisplay =
-    activity.type === "swim" && activity.distance < 1
-      ? `${(activity.distance * 1000).toFixed(0)} m`
-      : `${activity.distance.toFixed(1)} km`;
+    activity.type === "swim" && d < 1
+      ? `${(d * 1000).toFixed(0)} m`
+      : `${d.toFixed(1)} km`;
 
   const stats: { label: string; value: string }[] =
     activity.type === "run"

@@ -12,25 +12,6 @@ const STORY_HEIGHT = 1920;
 const SCALE_MIN = 0.4;
 const clampScale = (s: number) => Math.max(SCALE_MIN, s);
 
-type PositionPreset =
-  | "top-left"
-  | "top-center"
-  | "top-right"
-  | "center"
-  | "bottom-left"
-  | "bottom-center"
-  | "bottom-right";
-
-const PRESETS: { id: PositionPreset; label: string; x: number; y: number }[] = [
-  { id: "top-left", label: "Top Left", x: 0.05, y: 0.08 },
-  { id: "top-center", label: "Top Center", x: 0.5, y: 0.08 },
-  { id: "top-right", label: "Top Right", x: 0.95, y: 0.08 },
-  { id: "center", label: "Center", x: 0.5, y: 0.5 },
-  { id: "bottom-left", label: "Bottom Left", x: 0.05, y: 0.92 },
-  { id: "bottom-center", label: "Bottom Center", x: 0.5, y: 0.92 },
-  { id: "bottom-right", label: "Bottom Right", x: 0.95, y: 0.92 },
-];
-
 type LayerId = "card" | "route" | "stats";
 
 interface ImageComposerProps {
@@ -179,20 +160,20 @@ export function ImageComposer({
   }, [canvasWidth, canvasHeight]);
 
   const [position, setPosition] = useState({ x: 0.5, y: 0.92 });
-  const [routePos, setRoutePos] = useState({ x: 0.2, y: 0.25 });
-  const [statsPos, setStatsPos] = useState({ x: 0.8, y: 0.75 });
+  const [routePos, setRoutePos] = useState({ x: 0.5, y: 0.3 });
+  const [statsPos, setStatsPos] = useState({ x: 0.5, y: 0.7 });
 
   const [cardScale, setCardScale] = useState(1.2);
   const [cardRotation, setCardRotation] = useState(0);
-  const [routeScale, setRouteScale] = useState(1.5);
+  const [routeScale, setRouteScale] = useState(3.0);
   const [routeRotation, setRouteRotation] = useState(0);
-  const [statsScale, setStatsScale] = useState(1.8);
+  const [statsScale, setStatsScale] = useState(3.6);
   const [statsRotation, setStatsRotation] = useState(0);
 
   // Ref-mirrors so native touch handlers always read current state (no stale closures)
   const cardScaleRef = useRef(1.2);
-  const routeScaleRef = useRef(1.5);
-  const statsScaleRef = useRef(1.8);
+  const routeScaleRef = useRef(3.0);
+  const statsScaleRef = useRef(3.6);
   const cardRotRef = useRef(0);
   const routeRotRef = useRef(0);
   const statsRotRef = useRef(0);
@@ -248,16 +229,6 @@ export function ImageComposer({
     if (target === "card") setPosition(pos);
     if (target === "route") setRoutePos(pos);
     if (target === "stats") setStatsPos(pos);
-  };
-
-  const applyPreset = (preset: PositionPreset) => {
-    const p = PRESETS.find((x) => x.id === preset)!;
-    if (cardStyle === "map") {
-      setPosition({ x: p.x, y: p.y });
-    } else {
-      setRoutePos({ x: p.x, y: p.y * 0.4 });
-      setStatsPos({ x: p.x, y: 0.5 + p.y * 0.4 });
-    }
   };
 
   const startDrag = useCallback(
@@ -492,20 +463,6 @@ export function ImageComposer({
       onPointerUp={endDrag}
       onPointerLeave={endDrag}
     >
-      <div className="flex flex-wrap gap-2 items-center">
-        <span className="text-sm text-zinc-500">Position:</span>
-        {PRESETS.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            onClick={() => applyPreset(p.id)}
-            aria-label={`Position ${p.label}`}
-            className="rounded-lg bg-zinc-100 px-3 py-2 min-h-[44px] sm:min-h-0 sm:py-1.5 text-xs text-zinc-600 hover:bg-zinc-200 transition-colors border border-zinc-200 focus-visible:ring-2 focus-visible:ring-[#FC4C02] focus-visible:ring-offset-2"
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
 
       <p className="text-xs text-zinc-500">
         Pinch directly on any element to resize and rotate. Or tap to select, then drag the handles.

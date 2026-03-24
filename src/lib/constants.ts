@@ -3,8 +3,8 @@ export type ActivityType = "run" | "ride" | "swim" | "hike";
 export interface StravaActivity {
   type: ActivityType;
   routeName: string;
-  distance: number;
-  duration: number;
+  distance?: number;
+  duration?: number;
   pace?: string;
   speed?: number;
   elevation?: number;

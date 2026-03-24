@@ -155,7 +155,7 @@ export default function Home() {
                 aria-pressed={statsTheme === "light"}
                 className={`min-h-[44px] rounded-lg px-4 py-2.5 sm:py-2 text-sm font-medium transition-colors touch-manipulation focus-visible:ring-2 focus-visible:ring-[#FC4C02] focus-visible:ring-offset-2 ${
                   statsTheme === "light"
-                    ? "bg-zinc-200 text-zinc-900 border border-zinc-300"
+                    ? "bg-[#FC4C02] text-white"
                     : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 border border-zinc-200 active:bg-zinc-200"
                 }`}
               >
@@ -168,7 +168,7 @@ export default function Home() {
                 aria-pressed={statsTheme === "dark"}
                 className={`min-h-[44px] rounded-lg px-4 py-2.5 sm:py-2 text-sm font-medium transition-colors touch-manipulation focus-visible:ring-2 focus-visible:ring-[#FC4C02] focus-visible:ring-offset-2 ${
                   statsTheme === "dark"
-                    ? "bg-zinc-200 text-zinc-900 border border-zinc-300"
+                    ? "bg-[#FC4C02] text-white"
                     : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 border border-zinc-200 active:bg-zinc-200"
                 }`}
               >
@@ -185,7 +185,7 @@ export default function Home() {
                   aria-pressed={statsLayout === "vertical"}
                   className={`min-h-[44px] rounded-lg px-4 py-2.5 sm:py-2 text-sm font-medium transition-colors touch-manipulation focus-visible:ring-2 focus-visible:ring-[#FC4C02] focus-visible:ring-offset-2 ${
                     statsLayout === "vertical"
-                      ? "bg-zinc-200 text-zinc-900 border border-zinc-300"
+                      ? "bg-[#FC4C02] text-white"
                       : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 border border-zinc-200 active:bg-zinc-200"
                   }`}
                 >
@@ -198,7 +198,7 @@ export default function Home() {
                   aria-pressed={statsLayout === "horizontal"}
                   className={`min-h-[44px] rounded-lg px-4 py-2.5 sm:py-2 text-sm font-medium transition-colors touch-manipulation focus-visible:ring-2 focus-visible:ring-[#FC4C02] focus-visible:ring-offset-2 ${
                     statsLayout === "horizontal"
-                      ? "bg-zinc-200 text-zinc-900 border border-zinc-300"
+                      ? "bg-[#FC4C02] text-white"
                       : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 border border-zinc-200 active:bg-zinc-200"
                   }`}
                 >

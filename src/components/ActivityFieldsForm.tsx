@@ -18,12 +18,12 @@ function formatDurationForInput(seconds: number): string {
 }
 
 export function ActivityFieldsForm({ activity, onActivityChange }: ActivityFieldsFormProps) {
-  const [durationInput, setDurationInput] = useState(() => formatDurationForInput(activity.duration));
+  const [durationInput, setDurationInput] = useState(() => formatDurationForInput(activity.duration ?? 0));
   const [durationError, setDurationError] = useState(false);
   const [nameGroupFilter, setNameGroupFilter] = useState<string>("all");
 
   useEffect(() => {
-    setDurationInput(formatDurationForInput(activity.duration));
+    setDurationInput(formatDurationForInput(activity.duration ?? 0));
     setDurationError(false);
   }, [activity.duration]);
 
@@ -35,11 +35,25 @@ export function ActivityFieldsForm({ activity, onActivityChange }: ActivityField
     const next = { ...activity };
     if (field === "routeName") next.routeName = String(value);
     if (field === "activityDate") next.activityDate = String(value);
-    if (field === "distance") next.distance = parseFloat(String(value)) || 0;
-    if (field === "duration") next.duration = parseInt(String(value), 10) || 0;
+    
+    if (field === "distance") {
+      const v = String(value);
+      next.distance = v === "" ? undefined : parseFloat(v);
+    }
+    if (field === "duration") {
+      const v = String(value);
+      next.duration = v === "" ? undefined : parseInt(v, 10);
+    }
     if (field === "pace") next.pace = String(value);
-    if (field === "speed") next.speed = parseFloat(String(value)) || 0;
-    if (field === "elevation") next.elevation = parseInt(String(value), 10) || 0;
+    if (field === "speed") {
+      const v = String(value);
+      next.speed = v === "" ? undefined : parseFloat(v);
+    }
+    if (field === "elevation") {
+      const v = String(value);
+      next.elevation = v === "" ? undefined : parseInt(v, 10);
+    }
+    
     const validated = validateActivity(next, field);
     onActivityChange(validated);
   };
@@ -116,7 +130,7 @@ export function ActivityFieldsForm({ activity, onActivityChange }: ActivityField
                           onClick={() => applyChange("routeName", name)}
                           className={`min-h-[44px] rounded-full border px-3 py-2 text-left text-xs font-medium transition-colors touch-manipulation sm:min-h-0 sm:py-1.5 ${
                             activity.routeName === name
-                              ? "border-[#FC4C02] bg-orange-50 text-zinc-900"
+                              ? "border-[#FC4C02] bg-[#FC4C02] text-white"
                               : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 active:bg-zinc-50"
                           }`}
                         >
@@ -138,7 +152,7 @@ export function ActivityFieldsForm({ activity, onActivityChange }: ActivityField
                       onClick={() => applyChange("routeName", name)}
                       className={`min-h-[44px] shrink-0 rounded-full border px-3 py-2 text-left text-xs font-medium transition-colors touch-manipulation sm:min-h-0 sm:py-1.5 ${
                         activity.routeName === name
-                          ? "border-[#FC4C02] bg-orange-50 text-zinc-900"
+                          ? "border-[#FC4C02] bg-[#FC4C02] text-white"
                           : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 active:bg-zinc-50"
                       }`}
                     >
@@ -158,7 +172,7 @@ export function ActivityFieldsForm({ activity, onActivityChange }: ActivityField
             type="number"
             min="0"
             step={activity.type === "swim" ? 0.05 : 0.1}
-            value={activity.distance || ""}
+            value={activity.distance ?? ""}
             onChange={(e) => applyChange("distance", e.target.value)}
             placeholder={activity.type === "swim" ? "0.5" : "5.2"}
             className={inputClass}
@@ -175,12 +189,16 @@ export function ActivityFieldsForm({ activity, onActivityChange }: ActivityField
               setDurationError(false);
             }}
             onBlur={() => {
+              if (durationInput === "") {
+                applyChange("duration", "");
+                return;
+              }
               const sec = parseDurationToSec(durationInput);
-              if (sec > 0) {
+              if (sec >= 0) {
                 applyChange("duration", sec);
                 setDurationError(false);
               } else {
-                setDurationInput(formatDurationForInput(activity.duration));
+                setDurationInput(formatDurationForInput(activity.duration ?? 0));
                 setDurationError(true);
               }
             }}

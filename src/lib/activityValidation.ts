@@ -19,44 +19,44 @@ const LIMITS: Record<
   }
 > = {
   run: {
-    distanceMin: 0.5,
-    distanceMax: 50,
-    durationMinSec: 600, // 10 min
-    durationMaxSec: 28800, // 8 h
-    paceMinPerKm: 3, // 3:00/km elite
-    paceMaxPerKm: 15, // 15:00/km slow walk
+    distanceMin: 0,
+    distanceMax: 100,
+    durationMinSec: 0,
+    durationMaxSec: 86400,
+    paceMinPerKm: 2,
+    paceMaxPerKm: 30,
     elevationMin: 0,
-    elevationMax: 3000,
+    elevationMax: 10000,
   },
   ride: {
-    distanceMin: 1,
-    distanceMax: 300,
-    durationMinSec: 900, // 15 min
-    durationMaxSec: 86400, // 24 h
-    speedMinKmh: 8,
-    speedMaxKmh: 60,
+    distanceMin: 0,
+    distanceMax: 500,
+    durationMinSec: 0,
+    durationMaxSec: 172800,
+    speedMinKmh: 0,
+    speedMaxKmh: 120,
     elevationMin: 0,
-    elevationMax: 5000,
+    elevationMax: 20000,
   },
   swim: {
-    distanceMin: 0.05, // 50 m
-    distanceMax: 15,
-    durationMinSec: 600, // 10 min
-    durationMaxSec: 21600, // 6 h
-    paceMinPer100m: 0.75, // 45s/100m elite
-    paceMaxPer100m: 4, // 4:00/100m casual
+    distanceMin: 0,
+    distanceMax: 50,
+    durationMinSec: 0,
+    durationMaxSec: 43200,
+    paceMinPer100m: 0.5,
+    paceMaxPer100m: 10,
     elevationMin: 0,
     elevationMax: 0,
   },
   hike: {
-    distanceMin: 1,
-    distanceMax: 50,
-    durationMinSec: 3600, // 1 h
-    durationMaxSec: 86400, // 24 h
-    paceMinPerKm: 8, // 8 min/km fast
-    paceMaxPerKm: 45, // 45 min/km very slow
+    distanceMin: 0,
+    distanceMax: 100,
+    durationMinSec: 0,
+    durationMaxSec: 172800,
+    paceMinPerKm: 5,
+    paceMaxPerKm: 60,
     elevationMin: 0,
-    elevationMax: 3500,
+    elevationMax: 10000,
   },
 };
 
@@ -98,33 +98,34 @@ export function validateActivity(
   const limits = LIMITS[activity.type];
   const out = { ...activity };
 
-  // Clamp distance
-  out.distance = clamp(out.distance, limits.distanceMin, limits.distanceMax);
+  // Allow 0 or undefined (nothing)
+  const d = out.distance ?? 0;
+  out.distance = clamp(d, limits.distanceMin, limits.distanceMax);
   out.distance = Math.round(out.distance * 10) / 10;
 
-  // Clamp duration
-  out.duration = clamp(out.duration, limits.durationMinSec, limits.durationMaxSec);
+  const dur = out.duration ?? 0;
+  out.duration = clamp(dur, limits.durationMinSec, limits.durationMaxSec);
   out.duration = Math.round(out.duration);
 
   if (activity.type === "run" || activity.type === "hike") {
     const paceLim = limits.paceMinPerKm!;
     const paceMax = limits.paceMaxPerKm!;
-    const paceFromDistDur = out.distance > 0 ? out.duration / 60 / out.distance : paceLim; // min/km
+    const paceFromDistDur = (out.distance ?? 0) > 0 ? (out.duration ?? 0) / 60 / (out.distance ?? 0) : paceLim; // min/km
 
     if (changedField === "distance" || changedField === "pace") {
       const pace = out.pace ? parsePaceToMinutes(out.pace) : paceFromDistDur;
       const paceClamped = clamp(pace ?? paceFromDistDur, paceLim, paceMax);
       out.pace = minPerKmToPace(paceClamped);
-      out.duration = Math.round(out.distance * paceClamped * 60); // km * min/km * 60 = sec
+      out.duration = Math.round((out.distance ?? 0) * paceClamped * 60); // km * min/km * 60 = sec
     } else if (changedField === "duration") {
       const paceClamped = clamp(paceFromDistDur, paceLim, paceMax);
       out.pace = minPerKmToPace(paceClamped);
-      out.duration = Math.round(out.distance * paceClamped * 60);
+      out.duration = Math.round((out.distance ?? 0) * paceClamped * 60);
     } else {
       const p = parsePaceToMinutes(out.pace ?? "0:00") ?? paceFromDistDur;
       const paceClamped = clamp(p, paceLim, paceMax);
       out.pace = minPerKmToPace(paceClamped);
-      out.duration = Math.round(out.distance * paceClamped * 60);
+      out.duration = Math.round((out.distance ?? 0) * paceClamped * 60);
     }
 
     if (out.elevation != null && limits.elevationMax != null) {
@@ -137,20 +138,26 @@ export function validateActivity(
     const speedMax = limits.speedMaxKmh!;
 
     if (changedField === "distance" || changedField === "speed") {
-      const speed = out.speed ?? out.distance / (out.duration / 3600);
+      const speed = out.speed ?? ((out.distance ?? 0) / ((out.duration ?? 3600) / 3600));
       const speedClamped = clamp(speed, speedLim, speedMax);
       out.speed = Math.round(speedClamped * 10) / 10;
-      out.duration = Math.round((out.distance / out.speed!) * 3600);
+      if (out.speed > 0) {
+        out.duration = Math.round(((out.distance ?? 0) / out.speed!) * 3600);
+      }
     } else if (changedField === "duration") {
-      const speed = out.distance / (out.duration / 3600);
+      const speed = (out.distance ?? 0) / ((out.duration ?? 3600) / 3600);
       const speedClamped = clamp(speed, speedLim, speedMax);
       out.speed = Math.round(speedClamped * 10) / 10;
-      out.duration = Math.round((out.distance / out.speed!) * 3600);
+      if (out.speed > 0) {
+        out.duration = Math.round(((out.distance ?? 0) / out.speed!) * 3600);
+      }
     } else {
-      const speed = out.speed ?? out.distance / (out.duration / 3600);
+      const speed = out.speed ?? ((out.distance ?? 0) / ((out.duration ?? 3600) / 3600));
       const speedClamped = clamp(speed, speedLim, speedMax);
       out.speed = Math.round(speedClamped * 10) / 10;
-      out.duration = Math.round((out.distance / out.speed!) * 3600);
+      if (out.speed > 0) {
+        out.duration = Math.round(((out.distance ?? 0) / out.speed!) * 3600);
+      }
     }
 
     if (out.elevation != null && limits.elevationMax != null) {
@@ -161,8 +168,8 @@ export function validateActivity(
   if (activity.type === "swim") {
     const paceLim = limits.paceMinPer100m!;
     const paceMax = limits.paceMaxPer100m!;
-    const distM = out.distance * 1000;
-    const paceFromDistDur = distM > 0 ? (out.duration / 60) / (distM / 100) : 2; // min per 100m
+    const distM = (out.distance ?? 0) * 1000;
+    const paceFromDistDur = distM > 0 ? ((out.duration ?? 0) / 60) / (distM / 100) : 2; // min per 100m
 
     if (changedField === "distance" || changedField === "pace") {
       const pacePer100 = out.pace ? parsePaceToMinutes(out.pace) : paceFromDistDur;
