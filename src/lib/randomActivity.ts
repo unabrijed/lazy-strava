@@ -3,7 +3,7 @@ import { DEFAULT_ROUTE_NAME, ROUTE_NAMES } from "./constants";
 
 /** Stable default activity for hydration (no random/Date). */
 export function getDefaultActivity(type: ActivityType = "run"): StravaActivity {
-  const base = { activityDate: "2025-03-15" };
+  const base = { activityDate: new Date().toISOString().slice(0, 10) };
   switch (type) {
     case "run":
       return {
