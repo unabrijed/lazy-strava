@@ -1,6 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+
+function formatErrorForUser(err: unknown): string {
+  if (err instanceof Error && err.message) return err.message;
+  if (typeof err === "string") return err;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return "Unknown error";
+  }
+}
 
 const DEFAULT_WIDTH = 1080;
 const DEFAULT_HEIGHT = 1920;
@@ -44,11 +54,45 @@ export function ExportButton({
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [successKind, setSuccessKind] = useState<"share" | "download">("download");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const errorClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearErrorAutoDismiss = () => {
+    if (errorClearTimeoutRef.current) {
+      clearTimeout(errorClearTimeoutRef.current);
+      errorClearTimeoutRef.current = null;
+    }
+  };
+
+  const dismissError = () => {
+    clearErrorAutoDismiss();
+    setErrorMessage(null);
+    setStatus("idle");
+  };
+
+  const scheduleErrorClear = () => {
+    clearErrorAutoDismiss();
+    errorClearTimeoutRef.current = setTimeout(() => {
+      setStatus("idle");
+      setErrorMessage(null);
+      errorClearTimeoutRef.current = null;
+    }, 5000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (errorClearTimeoutRef.current) {
+        clearTimeout(errorClearTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleExport = async () => {
     const el = composeRef.current;
     if (!el || loading) return;
+    clearErrorAutoDismiss();
     setStatus("idle");
+    setErrorMessage(null);
     setLoading(true);
 
     try {
@@ -151,7 +195,11 @@ export function ExportButton({
       });
 
       if (!blob) {
+        setErrorMessage(
+          "Could not create image file (browser blocked or canvas too large). Try a smaller background photo or a different browser."
+        );
         setStatus("error");
+        scheduleErrorClear();
         return;
       }
 
@@ -166,12 +214,14 @@ export function ExportButton({
       if (how === "aborted") return;
       setSuccessKind(how);
 
+      setErrorMessage(null);
       setStatus("success");
       setTimeout(() => setStatus("idle"), 3000);
     } catch (err) {
       console.error("Export failed:", err);
+      setErrorMessage(formatErrorForUser(err));
       setStatus("error");
-      setTimeout(() => setStatus("idle"), 5000);
+      scheduleErrorClear();
     } finally {
       setLoading(false);
     }
@@ -197,10 +247,22 @@ export function ExportButton({
             : "Download started. Check your downloads folder (on mobile, also check the notification bar)."}
         </p>
       )}
-      {status === "error" && (
-        <p className="text-sm text-red-600" role="alert" aria-live="polite">
-          Download failed. Try again.
-        </p>
+      {status === "error" && errorMessage && (
+        <div
+          className="rounded-lg border border-red-200 bg-red-50 p-3 text-left"
+          role="alert"
+          aria-live="assertive"
+        >
+          <p className="text-sm font-medium text-red-800">Download failed</p>
+          <p className="mt-2 text-sm text-red-700 wrap-break-word whitespace-pre-wrap">{errorMessage}</p>
+          <button
+            type="button"
+            onClick={dismissError}
+            className="mt-3 min-h-[44px] rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-800 hover:bg-red-100 touch-manipulation"
+          >
+            Dismiss
+          </button>
+        </div>
       )}
     </div>
   );
