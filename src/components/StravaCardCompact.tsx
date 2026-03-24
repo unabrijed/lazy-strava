@@ -12,24 +12,24 @@ interface StravaCardCompactProps {
 
 const ICONS: Record<StravaActivity["type"], React.ReactNode> = {
   run: (
-    <svg viewBox="0 0 24 24" fill="none" stroke={STRAVA_ORANGE} strokeWidth="1.5" className="w-8 h-8">
+    <svg viewBox="0 0 24 24" fill="none" stroke={STRAVA_ORANGE} strokeWidth="1.5" className="w-10 h-10">
       <path d="M13.5 5.5c1.09 0 2 .92 2 2v4l-1.5 4 2 1 2.5-6c.5-1.5 0-3-1.5-3.5-1.5-.5-3 .5-3.5 2l-2 4-1-3" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
   ride: (
-    <svg viewBox="0 0 24 24" fill="none" stroke={STRAVA_ORANGE} strokeWidth="1.5" className="w-8 h-8">
+    <svg viewBox="0 0 24 24" fill="none" stroke={STRAVA_ORANGE} strokeWidth="1.5" className="w-10 h-10">
       <circle cx="6" cy="15" r="3" strokeLinecap="round" strokeLinejoin="round" />
       <circle cx="18" cy="15" r="3" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M9 15h6M6 12l2-4h8l2 4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
   swim: (
-    <svg viewBox="0 0 24 24" fill="none" stroke={STRAVA_ORANGE} strokeWidth="1.5" className="w-8 h-8">
+    <svg viewBox="0 0 24 24" fill="none" stroke={STRAVA_ORANGE} strokeWidth="1.5" className="w-10 h-10">
       <path d="M12 4l-2 4 2 4 2-4-2-4zM6 12l2 4 2-4-2-4-2 4zM18 12l-2 4-2-4 2-4 2 4zM4 16l2 4 2-4M18 16l-2 4-2-4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
   hike: (
-    <svg viewBox="0 0 24 24" fill="none" stroke={STRAVA_ORANGE} strokeWidth="1.5" className="w-8 h-8">
+    <svg viewBox="0 0 24 24" fill="none" stroke={STRAVA_ORANGE} strokeWidth="1.5" className="w-10 h-10">
       <path d="M12 2v20M8 8l4-4 4 4M8 12l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
@@ -75,8 +75,8 @@ export function StravaCardCompact({ activity, layout, theme = "dark" }: StravaCa
 
   const StatItem = ({ label, value }: { label: string; value: string }) => (
     <div className="text-center font-sans whitespace-nowrap">
-      <p className={`text-xs font-normal ${labelColor}`} style={{ textShadow }}>{label}</p>
-      <p className={`text-lg font-semibold ${valueColor} mt-0.5`} style={{ textShadow }}>{value}</p>
+      <p className={`text-sm font-normal ${labelColor}`} style={{ textShadow }}>{label}</p>
+      <p className={`text-2xl font-semibold ${valueColor} mt-0.5`} style={{ textShadow }}>{value}</p>
     </div>
   );
 

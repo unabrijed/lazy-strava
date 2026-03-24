@@ -145,7 +145,7 @@ export function ImageComposer({
 }: ImageComposerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(0.35);
+  const [scale, setScale] = useState(0.3);
 
   const canvasWidth = backgroundMedia ? backgroundMedia.width : STORY_WIDTH;
   const canvasHeight = backgroundMedia ? backgroundMedia.height : STORY_HEIGHT;
@@ -166,11 +166,11 @@ export function ImageComposer({
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
     const updateScale = () => {
-      const padding = 16;
+      const padding = 8;
       const w = Math.max(0, wrapper.clientWidth - padding);
       const h = Math.max(0, wrapper.clientHeight - padding);
-      const s = w > 0 && h > 0 ? Math.min(w / canvasWidth, h / canvasHeight) : 0.35;
-      setScale(Math.max(0.2, Math.min(1, s)));
+      const s = w > 0 && h > 0 ? Math.min(w / canvasWidth, h / canvasHeight) : 0.3;
+      setScale(Math.max(0.1, Math.min(1, s)));
     };
     updateScale();
     const ro = new ResizeObserver(updateScale);
@@ -182,17 +182,37 @@ export function ImageComposer({
   const [routePos, setRoutePos] = useState({ x: 0.2, y: 0.25 });
   const [statsPos, setStatsPos] = useState({ x: 0.8, y: 0.75 });
 
-  const [cardScale, setCardScale] = useState(0.85);
+  const [cardScale, setCardScale] = useState(1.2);
   const [cardRotation, setCardRotation] = useState(0);
-  const [routeScale, setRouteScale] = useState(1);
+  const [routeScale, setRouteScale] = useState(1.5);
   const [routeRotation, setRouteRotation] = useState(0);
-  const [statsScale, setStatsScale] = useState(1);
+  const [statsScale, setStatsScale] = useState(1.8);
   const [statsRotation, setStatsRotation] = useState(0);
+
+  // Ref-mirrors so native touch handlers always read current state (no stale closures)
+  const cardScaleRef = useRef(1.2);
+  const routeScaleRef = useRef(1.5);
+  const statsScaleRef = useRef(1.8);
+  const cardRotRef = useRef(0);
+  const routeRotRef = useRef(0);
+  const statsRotRef = useRef(0);
+  // Keep refs in sync with state
+  cardScaleRef.current = cardScale;
+  routeScaleRef.current = routeScale;
+  statsScaleRef.current = statsScale;
+  cardRotRef.current = cardRotation;
+  routeRotRef.current = routeRotation;
+  statsRotRef.current = statsRotation;
 
   const [dragging, setDragging] = useState<LayerId | null>(null);
   const [resizing, setResizing] = useState<LayerId | null>(null);
   const [rotating, setRotating] = useState<LayerId | null>(null);
   const [selectedLayer, setSelectedLayer] = useState<LayerId | null>(null);
+  const selectedLayerRef = useRef<LayerId | null>(null);
+  const setSelectedLayerAndRef = useCallback((layer: LayerId | null) => {
+    selectedLayerRef.current = layer;
+    setSelectedLayer(layer);
+  }, []);
   const dragStartRef = useRef<{
     posX: number;
     posY: number;
@@ -243,11 +263,11 @@ export function ImageComposer({
   const startDrag = useCallback(
     (clientX: number, clientY: number, target: LayerId) => {
       setDragging(target);
-      setSelectedLayer(target);
+      setSelectedLayerAndRef(target);
       const pos = target === "card" ? position : target === "route" ? routePos : statsPos;
       dragStartRef.current = { posX: pos.x, posY: pos.y, clientX, clientY, target };
     },
-    [position, routePos, statsPos]
+    [position, routePos, statsPos, setSelectedLayerAndRef]
   );
 
   const updateDrag = useCallback((clientX: number, clientY: number) => {
@@ -286,10 +306,10 @@ export function ImageComposer({
       const dist = Math.hypot(e.clientX - cx, e.clientY - cy);
       const scale0 = target === "card" ? cardScale : target === "route" ? routeScale : statsScale;
       setResizing(target);
-      setSelectedLayer(target);
+      setSelectedLayerAndRef(target);
       resizeStartRef.current = { scale0, dist0: Math.max(dist, 20), cx, cy, target };
     },
-    [position, routePos, statsPos, cardScale, routeScale, statsScale]
+    [position, routePos, statsPos, cardScale, routeScale, statsScale, setSelectedLayerAndRef]
   );
 
   const startRotate = useCallback(
@@ -305,10 +325,10 @@ export function ImageComposer({
       const angle0 = Math.atan2(e.clientY - cy, e.clientX - cx);
       const rot0 = target === "card" ? cardRotation : target === "route" ? routeRotation : statsRotation;
       setRotating(target);
-      setSelectedLayer(target);
+      setSelectedLayerAndRef(target);
       rotateStartRef.current = { rot0, angle0, cx, cy, target };
     },
-    [position, routePos, statsPos, cardRotation, routeRotation, statsRotation]
+    [position, routePos, statsPos, cardRotation, routeRotation, statsRotation, setSelectedLayerAndRef]
   );
 
   const handlePointerDown = useCallback(
@@ -316,10 +336,10 @@ export function ImageComposer({
       e.preventDefault();
       (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
       touchStartRef.current = { x: e.clientX, y: e.clientY, target };
-      setSelectedLayer(target);
+      setSelectedLayerAndRef(target);
       startDrag(e.clientX, e.clientY, target);
     },
-    [startDrag]
+    [startDrag, setSelectedLayerAndRef]
   );
 
   const handlePointerMove = useCallback(
@@ -347,58 +367,8 @@ export function ImageComposer({
     [dragging, updateDrag]
   );
 
-  const getScale = useCallback((layer: LayerId) =>
-    layer === "card" ? cardScale : layer === "route" ? routeScale : statsScale,
-    [cardScale, routeScale, statsScale]
-  );
-  const getRotation = useCallback((layer: LayerId) =>
-    layer === "card" ? cardRotation : layer === "route" ? routeRotation : statsRotation,
-    [cardRotation, routeRotation, statsRotation]
-  );
 
-  const handleTouchStart = useCallback(
-    (e: React.TouchEvent) => {
-      if (e.touches.length === 2) {
-        const t0 = e.touches[0]!;
-        const t1 = e.touches[1]!;
-        const midX = (t0.clientX + t1.clientX) / 2;
-        const midY = (t0.clientY + t1.clientY) / 2;
-        const hitEl = document.elementFromPoint(midX, midY);
-        const layerEl = hitEl?.closest("[data-layer]");
-        const layer = layerEl?.getAttribute("data-layer") as LayerId | null;
-        if (layer && (layer === "card" || layer === "route" || layer === "stats")) {
-          e.preventDefault();
-          const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
-          const angle = Math.atan2(t1.clientY - t0.clientY, t1.clientX - t0.clientX);
-          pinchRef.current = {
-            layer,
-            dist0: dist,
-            angle0: angle,
-            scale0: getScale(layer),
-            rot0: getRotation(layer),
-          };
-        }
-      }
-    },
-    [getScale, getRotation]
-  );
-
-  const handleTouchMove = useCallback(
-    (e: React.TouchEvent) => {
-      if (dragging && e.touches[0]) {
-        updateDrag(e.touches[0].clientX, e.touches[0].clientY);
-      }
-    },
-    [dragging, updateDrag]
-  );
-
-  const handleTouchEnd = useCallback(
-    (e: React.TouchEvent) => {
-      if (e.touches.length < 2) pinchRef.current = null;
-      if (e.touches.length === 0) endDrag();
-    },
-    [endDrag]
-  );
+  // No React touch handlers — all touch logic handled natively in wrapperRefCallback
 
   useEffect(() => {
     if (!dragging && !resizing && !rotating) return;
@@ -411,17 +381,65 @@ export function ImageComposer({
     };
   }, [dragging, resizing, rotating, endDrag]);
 
-  const touchMoveHandlerRef = useRef<((e: TouchEvent) => void) | null>(null);
+  const nativeTouchHandlersRef = useRef<{
+    start: (e: TouchEvent) => void;
+    move: (e: TouchEvent) => void;
+    end: (e: TouchEvent) => void;
+  } | null>(null);
 
   const wrapperRefCallback = useCallback((el: HTMLDivElement | null) => {
     const prev = wrapperRef.current;
-    if (prev && touchMoveHandlerRef.current) {
-      prev.removeEventListener("touchmove", touchMoveHandlerRef.current);
-      touchMoveHandlerRef.current = null;
+    if (prev && nativeTouchHandlersRef.current) {
+      prev.removeEventListener("touchstart", nativeTouchHandlersRef.current.start);
+      prev.removeEventListener("touchmove", nativeTouchHandlersRef.current.move);
+      prev.removeEventListener("touchend", nativeTouchHandlersRef.current.end);
+      prev.removeEventListener("touchcancel", nativeTouchHandlersRef.current.end);
+      nativeTouchHandlersRef.current = null;
     }
     wrapperRef.current = el;
     if (el) {
-      const handler = (e: TouchEvent) => {
+      const onStart = (e: TouchEvent) => {
+        if (e.touches.length === 2) {
+          // Two-finger pinch: determine which layer to manipulate
+          const t0 = e.touches[0]!;
+          const t1 = e.touches[1]!;
+          // Try hit-testing at each finger position, then midpoint
+          const candidates = [
+            document.elementFromPoint(t0.clientX, t0.clientY),
+            document.elementFromPoint(t1.clientX, t1.clientY),
+            document.elementFromPoint(
+              (t0.clientX + t1.clientX) / 2,
+              (t0.clientY + t1.clientY) / 2
+            ),
+          ];
+          let layer: LayerId | null = null;
+          for (const el of candidates) {
+            const found = el?.closest("[data-layer]")?.getAttribute("data-layer") as LayerId | null;
+            if (found && (found === "card" || found === "route" || found === "stats")) {
+              layer = found;
+              break;
+            }
+          }
+          // Fall back to the currently selected layer
+          if (!layer) layer = selectedLayerRef.current;
+          if (layer) {
+            e.preventDefault();
+            // Cancel any ongoing drag
+            dragStartRef.current = null;
+            setDragging(null);
+            const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+            const angle = Math.atan2(t1.clientY - t0.clientY, t1.clientX - t0.clientX);
+            const scale0 = layer === "card" ? cardScaleRef.current : layer === "route" ? routeScaleRef.current : statsScaleRef.current;
+            const rot0 = layer === "card" ? cardRotRef.current : layer === "route" ? routeRotRef.current : statsRotRef.current;
+            pinchRef.current = { layer, dist0: Math.max(dist, 10), angle0: angle, scale0, rot0 };
+          }
+        } else if (e.touches.length === 1) {
+          // Single finger — handled by pointer events on layers; just clear pinch
+          pinchRef.current = null;
+        }
+      };
+
+      const onMove = (e: TouchEvent) => {
         if (pinchRef.current && e.touches.length === 2) {
           e.preventDefault();
           const t0 = e.touches[0]!;
@@ -443,11 +461,23 @@ export function ImageComposer({
             setStatsScale(newScale);
             setStatsRotation(newRot);
           }
+        } else if (e.touches.length === 1 && dragStartRef.current && e.touches[0]) {
+          updateDrag(e.touches[0].clientX, e.touches[0].clientY);
         }
       };
-      touchMoveHandlerRef.current = handler;
-      el.addEventListener("touchmove", handler, { passive: false });
+
+      const onEnd = (e: TouchEvent) => {
+        if (e.touches.length < 2) pinchRef.current = null;
+        if (e.touches.length === 0) endDrag();
+      };
+
+      nativeTouchHandlersRef.current = { start: onStart, move: onMove, end: onEnd };
+      el.addEventListener("touchstart", onStart, { passive: false });
+      el.addEventListener("touchmove", onMove, { passive: false });
+      el.addEventListener("touchend", onEnd);
+      el.addEventListener("touchcancel", onEnd);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const routeSeed =
@@ -483,12 +513,8 @@ export function ImageComposer({
 
       <div
         ref={wrapperRefCallback}
-        className="mx-auto w-full max-w-[min(100vw-2rem,400px)] sm:max-w-[400px] rounded-xl border border-zinc-200 bg-zinc-100 p-2"
+        className="mx-auto w-full max-w-full sm:max-w-[420px] rounded-xl border border-zinc-200 bg-zinc-100 p-1.5"
         style={{ aspectRatio: `${canvasWidth} / ${canvasHeight}` }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onTouchCancel={handleTouchEnd}
       >
         <div className="relative h-full w-full overflow-hidden rounded-lg">
           <div

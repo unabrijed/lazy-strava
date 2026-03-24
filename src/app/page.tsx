@@ -72,7 +72,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl px-4 sm:px-6 py-6 sm:py-8 space-y-8 sm:space-y-10">
+      <main className="mx-auto max-w-2xl px-2 sm:px-6 py-6 sm:py-8 space-y-8 sm:space-y-10">
         <section className="min-w-0">
           <h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wider mb-3 sm:mb-4">
             Step 1 — Customize your activity
