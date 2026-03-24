@@ -25,18 +25,19 @@ export function StravaCard({
   className = "",
 }: StravaCardProps) {
   const isLight = theme === "light";
-  const formattedDuration = formatDuration(activity.duration);
+  const formattedDuration = formatDuration(activity.duration ?? 0);
+  const distanceKm = activity.distance ?? 0;
   const distanceDisplay =
-    activity.type === "swim" && activity.distance < 1
-      ? `${(activity.distance * 1000).toFixed(0)} m`
-      : `${activity.distance.toFixed(1)} km`;
+    activity.type === "swim" && distanceKm < 1
+      ? `${(distanceKm * 1000).toFixed(0)} m`
+      : `${distanceKm.toFixed(1)} km`;
 
   const routeSeed = useMemo(
     () =>
-      (activity.routeName + activity.distance + activity.duration)
+      (activity.routeName + distanceKm + (activity.duration ?? 0))
         .split("")
         .reduce((a, c) => a + c.charCodeAt(0), 0),
-    [activity.routeName, activity.distance, activity.duration]
+    [activity.routeName, distanceKm, activity.duration]
   );
 
   const handleFieldChange = (

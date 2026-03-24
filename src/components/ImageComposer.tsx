@@ -10,7 +10,9 @@ const STORY_WIDTH = 1080;
 const STORY_HEIGHT = 1920;
 
 const SCALE_MIN = 0.4;
-const clampScale = (s: number) => Math.max(SCALE_MIN, s);
+/** Sanity cap so scale stays finite and export/layout stay predictable */
+const SCALE_MAX = 5;
+const clampScale = (s: number) => Math.max(SCALE_MIN, Math.min(SCALE_MAX, s));
 
 type LayerId = "card" | "route" | "stats";
 
@@ -371,39 +373,26 @@ export function ImageComposer({
     if (el) {
       const onStart = (e: TouchEvent) => {
         if (e.touches.length === 2) {
-          // Two-finger pinch: determine which layer to manipulate
+          // Two-finger pinch: hit-test at pinch center — no prior tap required
           const t0 = e.touches[0]!;
           const t1 = e.touches[1]!;
-          // Try hit-testing at each finger position, then midpoint
-          const candidates = [
-            document.elementFromPoint(t0.clientX, t0.clientY),
-            document.elementFromPoint(t1.clientX, t1.clientY),
-            document.elementFromPoint(
-              (t0.clientX + t1.clientX) / 2,
-              (t0.clientY + t1.clientY) / 2
-            ),
-          ];
-          let layer: LayerId | null = null;
-          for (const el of candidates) {
-            const found = el?.closest("[data-layer]")?.getAttribute("data-layer") as LayerId | null;
-            if (found && (found === "card" || found === "route" || found === "stats")) {
-              layer = found;
-              break;
-            }
-          }
-          // Fall back to the currently selected layer
-          if (!layer) layer = selectedLayerRef.current;
-          if (layer) {
-            e.preventDefault();
-            // Cancel any ongoing drag
-            dragStartRef.current = null;
-            setDragging(null);
-            const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
-            const angle = Math.atan2(t1.clientY - t0.clientY, t1.clientX - t0.clientX);
-            const scale0 = layer === "card" ? cardScaleRef.current : layer === "route" ? routeScaleRef.current : statsScaleRef.current;
-            const rot0 = layer === "card" ? cardRotRef.current : layer === "route" ? routeRotRef.current : statsRotRef.current;
-            pinchRef.current = { layer, dist0: Math.max(dist, 10), angle0: angle, scale0, rot0 };
-          }
+          const midX = (t0.clientX + t1.clientX) / 2;
+          const midY = (t0.clientY + t1.clientY) / 2;
+          const top = document.elementFromPoint(midX, midY);
+          const attr = top?.closest("[data-layer]")?.getAttribute("data-layer") as LayerId | null;
+          const layer =
+            attr && (attr === "card" || attr === "route" || attr === "stats") ? attr : null;
+          if (!layer) return;
+          e.preventDefault();
+          setSelectedLayerAndRef(layer);
+          // Cancel any ongoing drag
+          dragStartRef.current = null;
+          setDragging(null);
+          const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+          const angle = Math.atan2(t1.clientY - t0.clientY, t1.clientX - t0.clientX);
+          const scale0 = layer === "card" ? cardScaleRef.current : layer === "route" ? routeScaleRef.current : statsScaleRef.current;
+          const rot0 = layer === "card" ? cardRotRef.current : layer === "route" ? routeRotRef.current : statsRotRef.current;
+          pinchRef.current = { layer, dist0: Math.max(dist, 10), angle0: angle, scale0, rot0 };
         } else if (e.touches.length === 1) {
           // Single finger — handled by pointer events on layers; just clear pinch
           pinchRef.current = null;
@@ -420,7 +409,7 @@ export function ImageComposer({
           const { layer, dist0, angle0, scale0, rot0 } = pinchRef.current;
           const scaleDelta = dist / dist0;
           const rotDelta = (angle - angle0) * (180 / Math.PI);
-          const newScale = Math.max(SCALE_MIN, scale0 * scaleDelta);
+          const newScale = clampScale(scale0 * scaleDelta);
           const newRot = rot0 + rotDelta;
           if (layer === "card") {
             setCardScale(newScale);

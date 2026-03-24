@@ -158,15 +158,16 @@ export function generateRandomActivity(type: ActivityType): StravaActivity {
   }
 }
 
-export function formatDuration(seconds: number): string {
-  return secondsToDuration(seconds);
+export function formatDuration(seconds: number | undefined): string {
+  return secondsToDuration(seconds ?? 0);
 }
 
 /** Compact format for overlay: "29m 20s" */
-export function formatDurationCompact(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
+export function formatDurationCompact(seconds: number | undefined): string {
+  const sec = seconds ?? 0;
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = Math.floor(sec % 60);
   if (h > 0) {
     return `${h}h ${m}m ${s}s`;
   }
