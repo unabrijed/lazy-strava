@@ -43,6 +43,7 @@ export function ExportButton({
 }: ExportButtonProps) {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
+  const [successKind, setSuccessKind] = useState<"share" | "download">("download");
 
   const handleExport = async () => {
     const el = composeRef.current;
@@ -154,17 +155,16 @@ export function ExportButton({
         return;
       }
 
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
       const safeFilename = filename
         ? filename.replace(/[^a-z0-9]/gi, "-").toLowerCase()
         : hasBackgroundImage
           ? "story"
           : "stats";
-      a.download = `lazy-strava-${safeFilename}-${Date.now()}.png`;
-      a.click();
-      URL.revokeObjectURL(url);
+      const downloadName = `lazy-strava-${safeFilename}-${Date.now()}.png`;
+
+      const how = await savePngBlob(blob, downloadName);
+      if (how === "aborted") return;
+      setSuccessKind(how);
 
       setStatus("success");
       setTimeout(() => setStatus("idle"), 3000);
@@ -185,23 +185,68 @@ export function ExportButton({
         disabled={loading}
         aria-live="polite"
         aria-busy={loading}
-        aria-label={loading ? "Exporting image" : "Export for Instagram"}
+        aria-label={loading ? "Downloading image" : "Download image"}
         className="min-h-[48px] w-full sm:w-auto rounded-lg bg-[#FC4C02] px-6 py-3 font-medium text-white hover:bg-[#e64402] active:bg-[#e64402] disabled:opacity-70 disabled:cursor-not-allowed transition-colors touch-manipulation focus-visible:ring-2 focus-visible:ring-[#FC4C02] focus-visible:ring-offset-2"
       >
-        {loading ? "Exporting..." : "Export for Instagram"}
+        {loading ? "Downloading..." : "Download"}
       </button>
       {status === "success" && (
         <p className="text-sm text-green-600" role="status" aria-live="polite">
-          Download started. Check your downloads folder.
+          {successKind === "share"
+            ? "Share sheet opened — choose Save Image or an app to store the PNG."
+            : "Download started. Check your downloads folder (on mobile, also check the notification bar)."}
         </p>
       )}
       {status === "error" && (
         <p className="text-sm text-red-600" role="alert" aria-live="polite">
-          Export failed. Try again.
+          Download failed. Try again.
         </p>
       )}
     </div>
   );
+}
+
+/**
+ * Mobile Safari often ignores programmatic <a download> for blob URLs.
+ * Prefer Web Share API with a File (iOS/Android), then fall back to in-DOM anchor + delayed revoke.
+ */
+async function savePngBlob(
+  blob: Blob,
+  downloadName: string
+): Promise<"share" | "download" | "aborted"> {
+  const file =
+    typeof File !== "undefined"
+      ? new File([blob], downloadName, { type: "image/png" })
+      : null;
+
+  if (file && typeof navigator !== "undefined" && navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({
+        files: [file],
+        title: downloadName,
+      });
+      return "share";
+    } catch (e) {
+      const err = e as { name?: string };
+      if (err?.name === "AbortError") return "aborted";
+      // User gesture may have expired or share failed — try anchor fallback
+    }
+  }
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = downloadName;
+  a.rel = "noopener";
+  a.style.cssText = "position:fixed;left:-9999px;top:0;";
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, 2500);
+
+  return "download";
 }
 
 /** Helper to load an image as a promise */

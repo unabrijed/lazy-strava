@@ -8,7 +8,8 @@ import { ImageComposer } from "@/components/ImageComposer";
 import { ExportButton } from "@/components/ExportButton";
 import { Logo } from "@/components/Logo";
 
-const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+/** Phone photos (HEIC/JPEG) are often >10MB; cap avoids browser OOM during export */
+const MAX_IMAGE_SIZE_BYTES = 100 * 1024 * 1024; // 100MB
 
 export default function Home() {
   const [activity, setActivity] = useState<StravaActivity>(() =>
@@ -28,7 +29,7 @@ export default function Home() {
       setUploadError(null);
       if (!file) return;
       if (file.size > MAX_IMAGE_SIZE_BYTES) {
-        setUploadError("Image too large. Please use a file under 10MB.");
+        setUploadError("Image too large. Please use a file under 100MB.");
         e.target.value = "";
         return;
       }
@@ -36,7 +37,7 @@ export default function Home() {
       const img = new Image();
       img.onload = () => {
         if (img.naturalWidth > 4096 || img.naturalHeight > 4096) {
-          setUploadError("Image very large. Export may be slow. Consider resizing.");
+          setUploadError("Image very large. Download may be slow. Consider resizing.");
         }
         setBackgroundMedia({ url, width: img.naturalWidth, height: img.naturalHeight });
       };
@@ -82,39 +83,7 @@ export default function Home() {
 
         <section className="min-w-0">
           <h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wider mb-3 sm:mb-4">
-            Step 2 — Add your photo (optional)
-          </h2>
-          <div className="flex flex-wrap gap-3 items-center">
-            <label className="cursor-pointer min-h-[44px] inline-flex items-center rounded-lg bg-zinc-100 px-4 py-2.5 sm:py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-200 active:bg-zinc-200 transition-colors border border-zinc-200 touch-manipulation focus-visible:ring-2 focus-visible:ring-[#FC4C02] focus-visible:ring-offset-2">
-              Upload image
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileUpload}
-                aria-describedby={uploadError ? "upload-error" : undefined}
-              />
-            </label>
-            {backgroundMedia && (
-              <button
-                type="button"
-                onClick={clearImage}
-                className="min-h-[44px] rounded-lg bg-zinc-100 px-4 py-2.5 sm:py-2 text-sm text-zinc-600 hover:bg-zinc-200 active:bg-zinc-200 transition-colors border border-zinc-200 touch-manipulation focus-visible:ring-2 focus-visible:ring-[#FC4C02] focus-visible:ring-offset-2"
-              >
-                Remove image
-              </button>
-            )}
-          </div>
-          {uploadError && (
-            <p id="upload-error" className="mt-2 text-sm text-amber-600" role="alert">
-              {uploadError}
-            </p>
-          )}
-        </section>
-
-        <section className="min-w-0">
-          <h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wider mb-3 sm:mb-4">
-            Step 3 — Style, position & export
+            Step 2 — Style, background & preview
           </h2>
           <div className="space-y-3 sm:space-y-4">
             <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
@@ -207,15 +176,50 @@ export default function Home() {
               </div>
             )}
           </div>
-          <ImageComposer
-            activity={activity}
-            backgroundMedia={backgroundMedia}
-            cardStyle={cardStyle}
-            statsLayout={statsLayout}
-            statsTheme={statsTheme}
-            exportRef={exportRef}
-            gradientRef={gradientRef}
-          />
+
+          <div className="mt-6 pt-6 border-t border-zinc-200">
+            <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-3">
+              Background photo (optional)
+            </h3>
+            <div className="flex flex-wrap gap-3 items-center">
+              <label className="cursor-pointer min-h-[44px] inline-flex items-center rounded-lg bg-zinc-100 px-4 py-2.5 sm:py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-200 active:bg-zinc-200 transition-colors border border-zinc-200 touch-manipulation focus-visible:ring-2 focus-visible:ring-[#FC4C02] focus-visible:ring-offset-2">
+                Upload image
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                  aria-describedby={uploadError ? "upload-error" : undefined}
+                />
+              </label>
+              {backgroundMedia && (
+                <button
+                  type="button"
+                  onClick={clearImage}
+                  className="min-h-[44px] rounded-lg bg-zinc-100 px-4 py-2.5 sm:py-2 text-sm text-zinc-600 hover:bg-zinc-200 active:bg-zinc-200 transition-colors border border-zinc-200 touch-manipulation focus-visible:ring-2 focus-visible:ring-[#FC4C02] focus-visible:ring-offset-2"
+                >
+                  Remove image
+                </button>
+              )}
+            </div>
+            {uploadError && (
+              <p id="upload-error" className="mt-2 text-sm text-amber-600" role="alert">
+                {uploadError}
+              </p>
+            )}
+          </div>
+
+          <div className="mt-6">
+            <ImageComposer
+              activity={activity}
+              backgroundMedia={backgroundMedia}
+              cardStyle={cardStyle}
+              statsLayout={statsLayout}
+              statsTheme={statsTheme}
+              exportRef={exportRef}
+              gradientRef={gradientRef}
+            />
+          </div>
           <div className="mt-4">
             <ExportButton
               composeRef={exportRef}
