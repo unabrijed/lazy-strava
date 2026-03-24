@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import type { StravaActivity } from "@/lib/constants";
 import { validateActivity, parseDurationToSec } from "@/lib/activityValidation";
 import { ACTIVITY_NAME_PRESET_GROUPS, ROUTE_NAMES } from "@/lib/constants";
@@ -18,18 +18,24 @@ function formatDurationForInput(seconds: number): string {
 }
 
 export function ActivityFieldsForm({ activity, onActivityChange }: ActivityFieldsFormProps) {
+  const [prevDuration, setPrevDuration] = useState(activity.duration);
   const [durationInput, setDurationInput] = useState(() => formatDurationForInput(activity.duration ?? 0));
   const [durationError, setDurationError] = useState(false);
+
+  const [prevType, setPrevType] = useState(activity.type);
   const [nameGroupFilter, setNameGroupFilter] = useState<string>("all");
 
-  useEffect(() => {
+  // Sync state with props during render to avoid cascading renders in useEffect
+  if (activity.duration !== prevDuration) {
+    setPrevDuration(activity.duration);
     setDurationInput(formatDurationForInput(activity.duration ?? 0));
     setDurationError(false);
-  }, [activity.duration]);
+  }
 
-  useEffect(() => {
+  if (activity.type !== prevType) {
+    setPrevType(activity.type);
     setNameGroupFilter("all");
-  }, [activity.type]);
+  }
 
   const applyChange = (field: keyof StravaActivity, value: string | number) => {
     const next = { ...activity };

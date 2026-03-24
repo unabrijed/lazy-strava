@@ -517,7 +517,7 @@ export function ImageComposer({
               )}
               {backgroundMedia && (
                 <div
-                  className="absolute inset-0 z-[1] cursor-default"
+                  className="absolute inset-0 z-1 cursor-default"
                   onClick={() => setSelectedLayer(null)}
                   aria-hidden
                 />
