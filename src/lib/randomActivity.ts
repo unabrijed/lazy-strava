@@ -85,6 +85,14 @@ function randomActivityDate(): string {
   return d.toISOString().slice(0, 10);
 }
 
+const ACTIVITY_TYPES: ActivityType[] = ["run", "ride", "swim", "hike"];
+
+/** Random sport, random route name, random stats — full “surprise me” roll. */
+export function generateFullyRandomActivity(): StravaActivity {
+  const type = randomFrom(ACTIVITY_TYPES);
+  return generateRandomActivity(type);
+}
+
 export function generateRandomActivity(type: ActivityType): StravaActivity {
   const base = { activityDate: randomActivityDate() };
   switch (type) {

@@ -1,17 +1,25 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import type { StravaActivity } from "@/lib/constants";
 import { STRAVA_ORANGE } from "@/lib/constants";
 import { formatDuration } from "@/lib/randomActivity";
 import { validateActivity } from "@/lib/activityValidation";
 import { RouteMap } from "./RouteMap";
 
+export type StravaCardExportLayout = {
+  width: number;
+  mapWidth: number;
+  mapHeight: number;
+};
+
 interface StravaCardProps {
   activity: StravaActivity;
   onChange?: (activity: StravaActivity) => void;
   theme?: "light" | "dark";
   className?: string;
+  /** Wider map + container for PNG export (off-screen composer). */
+  exportLayout?: StravaCardExportLayout;
 }
 
 /**
@@ -23,8 +31,11 @@ export function StravaCard({
   onChange,
   theme = "dark",
   className = "",
+  exportLayout,
 }: StravaCardProps) {
   const isLight = theme === "light";
+  const mapW = exportLayout?.mapWidth ?? 284;
+  const mapH = exportLayout?.mapHeight ?? 96;
   const formattedDuration = formatDuration(activity.duration ?? 0);
   const distanceKm = activity.distance ?? 0;
   const distanceDisplay =
@@ -68,6 +79,7 @@ export function StravaCard({
     <div
       className={`font-sans overflow-hidden rounded-2xl ${className}`}
       style={{
+        width: exportLayout?.width,
         background: isLight ? "rgba(255, 255, 255, 0.98)" : "rgba(20, 20, 20, 0.95)",
         boxShadow: isLight
           ? "0 4px 20px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.06)"
@@ -79,13 +91,18 @@ export function StravaCard({
         className="relative overflow-hidden"
         style={{
           backgroundColor: isLight ? "#f4f4f5" : "#141414",
-          padding: "10px",
+          padding: exportLayout ? "16px" : "10px",
         }}
       >
-        <RouteMap seed={routeSeed} width={284} height={96} />
+        <RouteMap
+          seed={routeSeed}
+          width={mapW}
+          height={mapH}
+          theme={isLight ? "light" : "dark"}
+        />
       </div>
 
-      <div className="px-4 py-3 space-y-3">
+      <div className={`space-y-3 ${exportLayout ? "px-6 py-4" : "px-4 py-3"}`}>
         {onChange ? (
           <input
             type="text"
@@ -197,9 +214,6 @@ function StatBlock({
   const [editing, setEditing] = useState(false);
   const [innerValue, setInnerValue] = useState(value);
   const isLight = theme === "light";
-  useEffect(() => {
-    if (!editing) setInnerValue(value);
-  }, [value, editing]);
 
   const handleBlur = () => {
     setEditing(false);

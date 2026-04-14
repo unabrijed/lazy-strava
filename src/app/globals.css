@@ -1,8 +1,18 @@
 @import "tailwindcss";
 
+/* Manual theme: toggled via .dark on <html> (see ThemeProvider + layout script). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
+  color-scheme: light;
   --background: #fafafa;
   --foreground: #18181b;
+}
+
+.dark {
+  color-scheme: dark;
+  --background: #0a0a0a;
+  --foreground: #fafafa;
 }
 
 @theme inline {
@@ -16,4 +26,12 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
   font-weight: 400;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
 }
