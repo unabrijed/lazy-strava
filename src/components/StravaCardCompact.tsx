@@ -74,21 +74,21 @@ export function StravaCardCompact({ activity, layout, theme = "dark" }: StravaCa
   const valueColor = isLight ? "text-zinc-900" : "text-white";
   const brandColor = isLight ? "text-zinc-900" : "text-white";
 
-  const StatItem = ({ label, value }: { label: string; value: string }) => (
-    <div className="text-center font-sans whitespace-nowrap">
-      <p className={`text-sm font-normal ${labelColor}`} style={{ textShadow }}>{label}</p>
-      <p className={`text-2xl font-semibold ${valueColor} mt-0.5`} style={{ textShadow }}>{value}</p>
+  const StatItem = ({ label, value, dense = false }: { label: string; value: string; dense?: boolean }) => (
+    <div className="min-w-[74px] max-w-full text-center font-sans whitespace-nowrap">
+      <p className={`${dense ? "text-xs" : "text-sm"} font-normal ${labelColor}`} style={{ textShadow }}>{label}</p>
+      <p className={`${dense ? "text-xl sm:text-2xl" : "text-2xl"} font-semibold ${valueColor} mt-0.5`} style={{ textShadow }}>{value}</p>
     </div>
   );
 
   if (layout === "horizontal") {
     return (
-      <div className="flex items-center gap-6 font-sans">
+      <div className="flex max-w-full flex-wrap items-center justify-center gap-x-4 gap-y-3 px-2 font-sans sm:gap-x-5">
         {stats.map((s) => (
-          <StatItem key={`${s.label}-${s.value}`} label={s.label} value={s.value} />
+          <StatItem key={`${s.label}-${s.value}`} label={s.label} value={s.value} dense />
         ))}
-        <div className="flex items-center justify-center">{ICONS[activity.type]}</div>
-        <span className={`text-sm font-semibold uppercase tracking-wide ${brandColor}`} style={{ textShadow }}>STRAVA</span>
+        <div className="flex shrink-0 items-center justify-center">{ICONS[activity.type]}</div>
+        <span className={`shrink-0 text-sm font-semibold uppercase tracking-wide ${brandColor}`} style={{ textShadow }}>STRAVA</span>
       </div>
     );
   }

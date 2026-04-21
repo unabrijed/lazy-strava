@@ -10,6 +10,8 @@ export interface StravaActivity {
   elevation?: number;
   calories?: number;
   activityDate?: string; // ISO date string
+  /** Optional salt for changing the displayed route without changing stats/name. */
+  routeVariant?: number;
 }
 
 export const STRAVA_ORANGE = "#FC4C02";
@@ -21,106 +23,142 @@ export const ACTIVITY_NAME_PRESET_GROUPS: Record<
 > = {
   run: [
     {
-      label: "Morning",
-      names: ["Morning Run - Central Park", "Sunrise Easy Run - Park Loop"],
+      label: "Easy",
+      names: [
+        "Morning Easy Run",
+        "Evening Easy Run",
+        "Recovery Run",
+        "Easy Neighborhood Run",
+        "Coffee Run",
+        "Shakeout Run",
+      ],
     },
     {
-      label: "Midday",
-      names: ["Lunch Run - Downtown Loop", "Midday Office Loop"],
+      label: "Workout",
+      names: [
+        "Tempo Run",
+        "Progression Run",
+        "Track Intervals",
+        "Hill Repeats",
+        "5K Effort",
+        "10K Training Run",
+      ],
     },
     {
-      label: "Afternoon",
-      names: ["Afternoon Tempo - Track", "Post-Work Jog - Riverside"],
-    },
-    {
-      label: "Evening",
-      names: ["Sunset Jog - Riverside", "Evening Tempo - Track"],
-    },
-    {
-      label: "Night",
-      names: ["Night Run - City Lights", "Late Night Easy Run"],
-    },
-    {
-      label: "Weekend",
-      names: ["Weekend Long Run", "Saturday Park Run", "Recovery Run - Neighborhood"],
+      label: "Long",
+      names: [
+        "Weekend Long Run",
+        "Sunday Long Run",
+        "Long Run",
+        "Steady Long Run",
+        "Park Loop Long Run",
+        "Riverside Long Run",
+      ],
     },
   ],
   ride: [
     {
-      label: "Morning",
-      names: ["Morning Commute", "Sunrise Ride - Coast"],
+      label: "Easy",
+      names: [
+        "Morning Ride",
+        "Evening Spin",
+        "Easy Ride",
+        "Recovery Spin",
+        "Coffee Ride",
+        "Neighborhood Spin",
+      ],
     },
     {
-      label: "Midday",
-      names: ["Lunch Ride - Loop", "Midday Spin - Flat Route"],
+      label: "Workout",
+      names: [
+        "Tempo Ride",
+        "Interval Ride",
+        "Hill Climb Ride",
+        "Rolling Roads Ride",
+        "Flat Route Sprints",
+        "Training Ride",
+      ],
     },
     {
-      label: "Afternoon",
-      names: ["Afternoon Training Ride", "Flat Loop Sprints"],
-    },
-    {
-      label: "Evening",
-      names: ["Evening Spin", "Sunset Coast Road"],
-    },
-    {
-      label: "Night",
-      names: ["Night Ride - City Lights"],
-    },
-    {
-      label: "Weekend",
-      names: ["Weekend Epic - Coast Road", "Sunday Long Ride", "Hill Climb - Mountain Pass"],
+      label: "Long",
+      names: [
+        "Weekend Long Ride",
+        "Sunday Ride",
+        "Endurance Ride",
+        "Backroads Ride",
+        "Coastal Ride",
+        "Cafe Stop Ride",
+      ],
     },
   ],
   swim: [
     {
-      label: "Morning",
-      names: ["Morning Laps - Pool", "Early Swim Session"],
+      label: "Pool",
+      names: [
+        "Morning Swim",
+        "Evening Swim",
+        "Pool Laps",
+        "Easy Swim",
+        "Recovery Swim",
+        "Lunch Swim",
+      ],
     },
     {
-      label: "Midday",
-      names: ["Lunch Swim - Pool", "Midday Lap Session"],
+      label: "Workout",
+      names: [
+        "Technique Swim",
+        "Pull Set",
+        "Threshold Swim",
+        "Sprint Set",
+        "Endurance Swim",
+        "Drills and Laps",
+      ],
     },
     {
-      label: "Afternoon",
-      names: ["Afternoon Technique Session", "Open Water Practice"],
-    },
-    {
-      label: "Evening",
-      names: ["Evening Swim Session", "Pool Cooldown"],
-    },
-    {
-      label: "Night",
-      names: ["Night Swim - Pool"],
-    },
-    {
-      label: "Weekend",
-      names: ["Open Water - Lake", "Weekend Endurance Swim", "Sprint Training"],
+      label: "Open Water",
+      names: [
+        "Open Water Swim",
+        "Lake Swim",
+        "Reservoir Swim",
+        "Buoy Loop Swim",
+        "Weekend Open Water",
+        "Steady Open Water Swim",
+      ],
     },
   ],
   hike: [
     {
-      label: "Morning",
-      names: ["Sunrise Ridge Trail", "Morning Forest Loop"],
+      label: "Easy",
+      names: [
+        "Morning Hike",
+        "Evening Hike",
+        "Forest Walk",
+        "Easy Trail Walk",
+        "Nature Trail",
+        "Valley Walk",
+      ],
     },
     {
-      label: "Midday",
-      names: ["Summit Lunch Hike", "Midday Valley Walk"],
+      label: "Trail",
+      names: [
+        "Ridge Trail Hike",
+        "Waterfall Trail",
+        "Forest Loop",
+        "Canyon Trail",
+        "Lookout Trail",
+        "Meadow Loop",
+      ],
     },
     {
-      label: "Afternoon",
-      names: ["Afternoon Coastal Hike", "Trail to Summit"],
-    },
-    {
-      label: "Evening",
-      names: ["Golden Hour Hike", "Scenic Ridge Trail"],
-    },
-    {
-      label: "Night",
-      names: ["Twilight Trail Walk"],
-    },
-    {
-      label: "Weekend",
-      names: ["Weekend Long Hike", "Mountain Ascent", "Forest Loop"],
+      label: "Summit",
+      names: [
+        "Summit Hike",
+        "Mountain Hike",
+        "Ridgeline Hike",
+        "Weekend Long Hike",
+        "Steady Climb",
+        "Trail to the Viewpoint",
+      ],
     },
   ],
 };
@@ -149,8 +187,8 @@ export const ROUTE_NAMES: Record<ActivityType, string[]> = {
 
 /** Stable defaults (not morning-first) for hydration and first paint. */
 export const DEFAULT_ROUTE_NAME: Record<ActivityType, string> = {
-  run: "Lunch Run - Downtown Loop",
-  ride: "Afternoon Training Ride",
-  swim: "Midday Lap Session",
-  hike: "Midday Valley Walk",
+  run: "Morning Easy Run",
+  ride: "Morning Ride",
+  swim: "Pool Laps",
+  hike: "Forest Walk",
 };

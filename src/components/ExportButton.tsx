@@ -144,7 +144,6 @@ function Spinner({ className }: { className?: string }) {
 export function ExportButton({
   composeRef,
   filename,
-  cardStyle = "map",
 }: ExportButtonProps) {
   const [loading, setLoading] = useState(false);
   const [loadingKey, setLoadingKey] = useState<LoadingKey>(null);
@@ -258,37 +257,10 @@ export function ExportButton({
     "inline-flex h-11 min-w-[44px] flex-1 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FC4C02] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
 
   return (
-    <div className="space-y-4">
-      <p className="text-xs text-zinc-500 dark:text-zinc-400">
-        {cardStyle === "compact" ? (
-          <>
-            Route + stats only, centered (horizontal/vertical matches your layout).{" "}
-            <span className="font-medium text-zinc-600 dark:text-zinc-300">With background</span> uses a
-            solid that matches the preview theme (light or dark) behind transparent gaps;{" "}
-            <span className="font-medium text-zinc-600 dark:text-zinc-300">without background</span> is a
-            transparent PNG for layering on your own photo.
-          </>
-        ) : (
-          <>
-            Full card (mini map + stats) at 1080px wide — no tall empty story frame.{" "}
-            <span className="font-medium text-zinc-600 dark:text-zinc-300">With background</span> adds a
-            theme-matched solid around the card; use{" "}
-            <span className="font-medium text-zinc-600 dark:text-zinc-300">without background</span> for a
-            PNG with no outer fill.
-          </>
-        )}
-      </p>
-
-      <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/50 space-y-3">
-        <div>
-          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-            With background
-          </p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-            Same image as transparent export, with a light or dark solid behind (matches your preview theme).
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+    <div className="space-y-3">
+      <div className="grid gap-2">
+        <div className="grid grid-cols-[88px_1fr_1fr] items-center gap-2 rounded-xl border border-zinc-200 bg-white p-2 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/50">
+          <p className="pl-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300">Solid</p>
           <button
             type="button"
             onClick={() => handleExport(true, "download")}
@@ -322,18 +294,9 @@ export function ExportButton({
             <span className="sm:inline">Share</span>
           </button>
         </div>
-      </div>
 
-      <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/80 p-4 dark:border-zinc-600 dark:bg-zinc-950/40 space-y-3">
-        <div>
-          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-            Without background
-          </p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-            Transparent PNG — drop onto your own image in Stories or editors.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-[88px_1fr_1fr] items-center gap-2 rounded-xl border border-dashed border-zinc-300 bg-zinc-50/80 p-2 dark:border-zinc-600 dark:bg-zinc-950/40">
+          <p className="pl-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300">Clear</p>
           <button
             type="button"
             onClick={() => handleExport(false, "download")}
@@ -371,9 +334,7 @@ export function ExportButton({
 
       {status === "success" && (
         <p className="text-sm text-green-600 dark:text-green-500" role="status" aria-live="polite">
-          {successKind === "share"
-            ? "Share sheet opened — pick an app or Save Image."
-            : "Download started. On mobile, check the notification bar if the file doesn’t appear in Downloads."}
+          {successKind === "share" ? "Share opened." : "Download started."}
         </p>
       )}
       {status === "error" && errorMessage && (

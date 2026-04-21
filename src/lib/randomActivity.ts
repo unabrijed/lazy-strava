@@ -1,9 +1,13 @@
 import type { ActivityType, StravaActivity } from "./constants";
 import { DEFAULT_ROUTE_NAME, ROUTE_NAMES } from "./constants";
 
+function todayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 /** Stable default activity for hydration (no random/Date). */
 export function getDefaultActivity(type: ActivityType = "run"): StravaActivity {
-  const base = { activityDate: new Date().toISOString().slice(0, 10) };
+  const base = { activityDate: todayIsoDate() };
   switch (type) {
     case "run":
       return {
@@ -80,9 +84,11 @@ function secondsToDuration(seconds: number): string {
 }
 
 function randomActivityDate(): string {
-  const d = new Date();
-  d.setDate(d.getDate() - Math.floor(Math.random() * 7));
-  return d.toISOString().slice(0, 10);
+  return todayIsoDate();
+}
+
+export function generateRandomActivityName(type: ActivityType): string {
+  return randomFrom(ROUTE_NAMES[type]);
 }
 
 const ACTIVITY_TYPES: ActivityType[] = ["run", "ride", "swim", "hike"];
@@ -99,13 +105,13 @@ export function generateRandomActivity(type: ActivityType): StravaActivity {
     case "run": {
       const distance = Math.round(randomBetween(3, 15) * 10) / 10;
       const paceMinPerKm = randomBetween(4.5, 7);
-      const durationSec = distance * 1000 * (paceMinPerKm / 60) * 60;
+      const durationSec = distance * paceMinPerKm * 60;
       const elevation = randomInt(20, 200);
       const calories = Math.round(durationSec * 0.1 + distance * 60);
       return {
         ...base,
         type: "run",
-        routeName: randomFrom(ROUTE_NAMES.run),
+        routeName: generateRandomActivityName("run"),
         distance,
         duration: Math.round(durationSec),
         pace: formatPace(paceMinPerKm),
@@ -122,7 +128,7 @@ export function generateRandomActivity(type: ActivityType): StravaActivity {
       return {
         ...base,
         type: "ride",
-        routeName: randomFrom(ROUTE_NAMES.ride),
+        routeName: generateRandomActivityName("ride"),
         distance,
         duration: Math.round(durationSec),
         speed: Math.round(speedKmh * 10) / 10,
@@ -139,7 +145,7 @@ export function generateRandomActivity(type: ActivityType): StravaActivity {
       return {
         ...base,
         type: "swim",
-        routeName: randomFrom(ROUTE_NAMES.swim),
+        routeName: generateRandomActivityName("swim"),
         distance,
         duration: Math.round(durationSec),
         pace: formatPace(pacePer100m),
@@ -155,7 +161,7 @@ export function generateRandomActivity(type: ActivityType): StravaActivity {
       return {
         ...base,
         type: "hike",
-        routeName: randomFrom(ROUTE_NAMES.hike),
+        routeName: generateRandomActivityName("hike"),
         distance,
         duration: Math.round(durationSec),
         pace: formatPace(paceMinPerKm),

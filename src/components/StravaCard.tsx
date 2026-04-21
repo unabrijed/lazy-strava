@@ -5,6 +5,7 @@ import type { StravaActivity } from "@/lib/constants";
 import { STRAVA_ORANGE } from "@/lib/constants";
 import { formatDuration } from "@/lib/randomActivity";
 import { validateActivity } from "@/lib/activityValidation";
+import { routeSeedForActivity } from "@/lib/routeSeed";
 import { RouteMap } from "./RouteMap";
 
 export type StravaCardExportLayout = {
@@ -43,13 +44,7 @@ export function StravaCard({
       ? `${(distanceKm * 1000).toFixed(0)} m`
       : `${distanceKm.toFixed(1)} km`;
 
-  const routeSeed = useMemo(
-    () =>
-      (activity.routeName + distanceKm + (activity.duration ?? 0))
-        .split("")
-        .reduce((a, c) => a + c.charCodeAt(0), 0),
-    [activity.routeName, distanceKm, activity.duration]
-  );
+  const routeSeed = useMemo(() => routeSeedForActivity(activity), [activity]);
 
   const handleFieldChange = (
     field: keyof StravaActivity,
@@ -88,9 +83,8 @@ export function StravaCard({
     >
       <div style={{ height: 2, backgroundColor: STRAVA_ORANGE }} />
       <div
-        className="relative overflow-hidden"
+        className="relative flex justify-center overflow-hidden"
         style={{
-          backgroundColor: isLight ? "#f4f4f5" : "#141414",
           padding: exportLayout ? "16px" : "10px",
         }}
       >
@@ -99,6 +93,7 @@ export function StravaCard({
           width={mapW}
           height={mapH}
           theme={isLight ? "light" : "dark"}
+          lineOnly
         />
       </div>
 

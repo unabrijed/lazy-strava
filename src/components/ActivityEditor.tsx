@@ -1,11 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import type { ActivityType, StravaActivity } from "@/lib/constants";
-import { ROUTE_NAMES } from "@/lib/constants";
 import { validateActivity } from "@/lib/activityValidation";
-import { generateFullyRandomActivity, generateRandomActivity } from "@/lib/randomActivity";
-import { applyVibePreset, VIBE_PRESETS } from "@/lib/vibePresets";
+import { generateRandomActivity } from "@/lib/randomActivity";
 import {
   uiActivityTitleInput,
   uiActivityTypeCell,
@@ -17,11 +14,10 @@ import {
   uiSectionLabel,
   uiToggleActive,
   uiToggleInactive,
-  uiVibeTile,
-  uiVibeTileActive,
 } from "@/lib/ui";
 import { StravaCard } from "./StravaCard";
 import { StravaCardCompact } from "./StravaCardCompact";
+import { randomRouteVariant, routeSeedForActivity } from "@/lib/routeSeed";
 import { RouteMap } from "./RouteMap";
 import { ActivityFieldsForm } from "./ActivityFieldsForm";
 import { ExportButton } from "./ExportButton";
@@ -54,87 +50,62 @@ export function ActivityEditor({
   onStatsLayoutChange,
   exportRef,
 }: ActivityEditorProps) {
-  const [activeVibeId, setActiveVibeId] = useState<string | null>(null);
-
-  const clearVibeAndUpdate = (next: StravaActivity) => {
-    setActiveVibeId(null);
+  const updateActivity = (next: StravaActivity) => {
     onActivityChange(next);
   };
 
-  const handleRandomize = () => {
-    setActiveVibeId(null);
-    onActivityChange(generateFullyRandomActivity());
-  };
 
-  const handleVibePreset = (id: string) => {
-    const next = applyVibePreset(id);
-    if (next) {
-      onActivityChange(next);
-      setActiveVibeId(id);
-    }
+  const handleSelectedTypeRandomize = () => {
+    onActivityChange(generateRandomActivity(activity.type));
   };
 
   const handleTypeChange = (type: ActivityType) => {
-    setActiveVibeId(null);
     onActivityChange(generateRandomActivity(type));
   };
 
   const handleRouteNameChange = (value: string) => {
-    setActiveVibeId(null);
     onActivityChange(validateActivity({ ...activity, routeName: value }));
   };
 
-  const routeSeed =
-    (activity.routeName + activity.distance + activity.duration)
-      .split("")
-      .reduce((a, c) => a + c.charCodeAt(0), 0);
+  const handleRouteRandomize = () => {
+    onActivityChange({ ...activity, routeVariant: randomRouteVariant() });
+  };
+
+  const routeSeed = routeSeedForActivity(activity);
+  const selectedActivityLabel =
+    ACTIVITY_TYPES.find((item) => item.type === activity.type)?.label ?? "Activity";
+
+  const preview =
+    cardStyle === "map" ? (
+      <StravaCard activity={activity} onChange={updateActivity} theme={statsTheme} />
+    ) : (
+      <div className="space-y-4">
+        <div className="flex justify-center">
+          <RouteMap seed={routeSeed} width={280} height={112} theme={statsTheme} />
+        </div>
+        <StravaCardCompact activity={activity} layout={statsLayout} theme={statsTheme} />
+      </div>
+    );
 
   return (
-    <div className={`${uiCardShell} overflow-hidden`}>
-      <div className="p-5 sm:p-6 space-y-8">
+    <div className={`${uiCardShell} overflow-hidden lg:grid lg:grid-cols-[minmax(360px,1fr)_minmax(320px,420px)]`}>
+      <div className="p-5 sm:p-6 space-y-5">
         <div>
           <h2 className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
             Build your activity
           </h2>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Pick a vibe, sport, and title — tune stats below.
-          </p>
         </div>
 
-        <section aria-labelledby="vibe-presets-heading">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h3 id="vibe-presets-heading" className={uiSectionLabel}>
-              Vibe presets
+        <section aria-labelledby="activity-type-heading">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <h3 id="activity-type-heading" className={uiSectionLabel}>
+              Type
             </h3>
-            <button type="button" onClick={handleRandomize} className={uiRandomButton}>
+            <button type="button" onClick={handleSelectedTypeRandomize} className={uiRandomButton}>
               <ShuffleIcon className="h-4 w-4" aria-hidden />
-              Random
+              Random {selectedActivityLabel}
             </button>
           </div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {VIBE_PRESETS.map((p) => {
-              const selected = activeVibeId === p.id;
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => handleVibePreset(p.id)}
-                  className={selected ? uiVibeTileActive : uiVibeTile}
-                >
-                  <span className="text-lg leading-none" aria-hidden>
-                    {p.emoji}
-                  </span>
-                  <span>{p.title}</span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        <section aria-labelledby="activity-type-heading">
-          <h3 id="activity-type-heading" className={`${uiSectionLabel} mb-3`}>
-            Activity type
-          </h3>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {ACTIVITY_TYPES.map(({ type, label, icon }) => {
               const selected = activity.type === type;
@@ -143,7 +114,7 @@ export function ActivityEditor({
                   key={type}
                   type="button"
                   onClick={() => handleTypeChange(type)}
-                  className={selected ? uiActivityTypeCellActive : uiActivityTypeCell}
+                  className={`${selected ? uiActivityTypeCellActive : uiActivityTypeCell} lg:min-h-11 lg:py-2`}
                 >
                   <span className="text-xl" aria-hidden>
                     {icon}
@@ -157,7 +128,7 @@ export function ActivityEditor({
 
         <section aria-labelledby="activity-name-heading">
           <label htmlFor="activity-route-name" id="activity-name-heading" className={uiFieldLabel}>
-            Activity name
+            Name
           </label>
           <input
             id="activity-route-name"
@@ -166,92 +137,71 @@ export function ActivityEditor({
             onChange={(e) => handleRouteNameChange(e.target.value)}
             placeholder="Name your activity"
             className={uiActivityTitleInput}
-            list="route-suggestions"
           />
-          <datalist id="route-suggestions">
-            {ROUTE_NAMES[activity.type].map((name) => (
-              <option key={name} value={name} />
-            ))}
-          </datalist>
         </section>
 
-        <ActivityFieldsForm activity={activity} onActivityChange={clearVibeAndUpdate} />
+        <ActivityFieldsForm activity={activity} onActivityChange={updateActivity} />
       </div>
 
-      <div className={uiDivider} />
+      <div className={`${uiDivider} lg:hidden`} />
 
-      <div className="px-5 sm:px-6 py-5 space-y-4 bg-zinc-50/60 dark:bg-zinc-900/30">
-        <p className={uiSectionLabel}>Export</p>
-        <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
-          <span className="text-sm text-zinc-600 dark:text-zinc-400 w-full sm:w-auto">Story layout</span>
-          <button
-            type="button"
-            onClick={() => onCardStyleChange("map")}
-            aria-pressed={cardStyle === "map"}
-            className={cardStyle === "map" ? uiToggleActive : uiToggleInactive}
-          >
-            Map + stats
-          </button>
-          <button
-            type="button"
-            onClick={() => onCardStyleChange("compact")}
-            aria-pressed={cardStyle === "compact"}
-            className={cardStyle === "compact" ? uiToggleActive : uiToggleInactive}
-          >
-            Compact
-          </button>
-        </div>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Preview matches the app theme (
-          <span className="font-medium text-zinc-600 dark:text-zinc-300">
-            {statsTheme === "dark" ? "dark" : "light"}
-          </span>
-          ). Use the header control to switch.
-        </p>
-        {cardStyle === "compact" && (
-          <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
-            <span className="text-sm text-zinc-600 dark:text-zinc-400 w-full sm:w-auto">Compact stats</span>
-            <button
-              type="button"
-              onClick={() => onStatsLayoutChange("vertical")}
-              aria-pressed={statsLayout === "vertical"}
-              className={statsLayout === "vertical" ? uiToggleActive : uiToggleInactive}
-            >
-              Vertical
-            </button>
-            <button
-              type="button"
-              onClick={() => onStatsLayoutChange("horizontal")}
-              aria-pressed={statsLayout === "horizontal"}
-              className={statsLayout === "horizontal" ? uiToggleActive : uiToggleInactive}
-            >
-              Horizontal
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div className={uiDivider} />
-
-      <div className="p-5 sm:p-6 space-y-3">
-        <p className={uiSectionLabel}>Preview</p>
-        {cardStyle === "map" ? (
-          <StravaCard activity={activity} onChange={clearVibeAndUpdate} theme={statsTheme} />
-        ) : (
-          <div className="space-y-4">
-            <div className="flex justify-center">
-              <RouteMap seed={routeSeed} width={280} height={112} theme={statsTheme} />
+      <aside className="bg-zinc-50/60 dark:bg-zinc-900/30 lg:border-l lg:border-zinc-200 lg:dark:border-zinc-800">
+        <div className="p-5 sm:p-6 space-y-5 lg:sticky lg:top-6">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className={uiSectionLabel}>Preview</p>
+              <button type="button" onClick={handleRouteRandomize} className={uiRandomButton}>
+                <ShuffleIcon className="h-4 w-4" aria-hidden />
+                Random route
+              </button>
             </div>
-            <StravaCardCompact activity={activity} layout={statsLayout} theme={statsTheme} />
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => onCardStyleChange("map")}
+                aria-pressed={cardStyle === "map"}
+                className={cardStyle === "map" ? uiToggleActive : uiToggleInactive}
+              >
+                Map + stats
+              </button>
+              <button
+                type="button"
+                onClick={() => onCardStyleChange("compact")}
+                aria-pressed={cardStyle === "compact"}
+                className={cardStyle === "compact" ? uiToggleActive : uiToggleInactive}
+              >
+                Compact
+              </button>
+            </div>
           </div>
-        )}
-      </div>
 
-      <div className={`${uiDivider} bg-zinc-50/60 dark:bg-zinc-900/30`} />
+          {cardStyle === "compact" && (
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-sm text-zinc-600 dark:text-zinc-400">Stats</span>
+              <button
+                type="button"
+                onClick={() => onStatsLayoutChange("vertical")}
+                aria-pressed={statsLayout === "vertical"}
+                className={statsLayout === "vertical" ? uiToggleActive : uiToggleInactive}
+              >
+                Vertical
+              </button>
+              <button
+                type="button"
+                onClick={() => onStatsLayoutChange("horizontal")}
+                aria-pressed={statsLayout === "horizontal"}
+                className={statsLayout === "horizontal" ? uiToggleActive : uiToggleInactive}
+              >
+                Horizontal
+              </button>
+            </div>
+          )}
 
-      <div className="px-5 sm:px-6 py-5 bg-zinc-50/60 dark:bg-zinc-900/30">
-        <ExportButton composeRef={exportRef} filename={activity.routeName} cardStyle={cardStyle} />
-      </div>
+          <div className="flex justify-center">{preview}</div>
+
+          <ExportButton composeRef={exportRef} filename={activity.routeName} cardStyle={cardStyle} />
+        </div>
+      </aside>
     </div>
   );
 }

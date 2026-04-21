@@ -3,15 +3,10 @@
 import { useState } from "react";
 import type { StravaActivity } from "@/lib/constants";
 import { validateActivity, parseDurationToSec } from "@/lib/activityValidation";
-import { ACTIVITY_NAME_PRESET_GROUPS } from "@/lib/constants";
 import {
-  uiChipActive,
-  uiChipInactive,
   uiFieldLabel,
   uiInput,
   uiSectionLabel,
-  uiSegmentActive,
-  uiSegmentInactive,
 } from "@/lib/ui";
 
 interface ActivityFieldsFormProps {
@@ -31,24 +26,11 @@ export function ActivityFieldsForm({ activity, onActivityChange }: ActivityField
   const [durationInput, setDurationInput] = useState(() => formatDurationForInput(activity.duration ?? 0));
   const [durationError, setDurationError] = useState(false);
 
-  const [prevType, setPrevType] = useState(activity.type);
-  const sessionGroups = ACTIVITY_NAME_PRESET_GROUPS[activity.type];
-  const firstSessionLabel = sessionGroups[0]?.label ?? "";
-  const [activeSessionLabel, setActiveSessionLabel] = useState(firstSessionLabel);
-
   if (activity.duration !== prevDuration) {
     setPrevDuration(activity.duration);
     setDurationInput(formatDurationForInput(activity.duration ?? 0));
     setDurationError(false);
   }
-
-  if (activity.type !== prevType) {
-    setPrevType(activity.type);
-    setActiveSessionLabel(ACTIVITY_NAME_PRESET_GROUPS[activity.type][0]!.label);
-  }
-
-  const activeGroup =
-    sessionGroups.find((g) => g.label === activeSessionLabel) ?? sessionGroups[0]!;
 
   const applyChange = (field: keyof StravaActivity, value: string | number) => {
     const next = { ...activity };
@@ -78,47 +60,7 @@ export function ActivityFieldsForm({ activity, onActivityChange }: ActivityField
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <p className={`${uiSectionLabel} mb-2`}>Session</p>
-        <div
-          className="-mx-1 flex gap-2 overflow-x-auto pb-1 pt-0.5"
-          role="tablist"
-          aria-label="Time of day"
-        >
-          {sessionGroups.map((g) => {
-            const selected = activeSessionLabel === g.label;
-            return (
-              <button
-                key={g.label}
-                type="button"
-                role="tab"
-                aria-selected={selected}
-                onClick={() => setActiveSessionLabel(g.label)}
-                className={selected ? uiSegmentActive : uiSegmentInactive}
-              >
-                {g.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div>
-        <p className={`${uiSectionLabel} mb-2`}>Suggestions for {activeGroup.label}</p>
-        <div className="-mx-1 flex flex-wrap gap-2 sm:gap-2">
-          {activeGroup.names.map((name) => (
-            <button
-              key={name}
-              type="button"
-              onClick={() => applyChange("routeName", name)}
-              className={activity.routeName === name ? uiChipActive : uiChipInactive}
-            >
-              {name}
-            </button>
-          ))}
-        </div>
-      </div>
+    <div className="space-y-4">
 
       <div>
         <label htmlFor="activity-date" className={uiFieldLabel}>
@@ -150,7 +92,7 @@ export function ActivityFieldsForm({ activity, onActivityChange }: ActivityField
           </div>
 
           <div>
-            <label className={uiFieldLabel}>Duration (HH:MM:SS or MM:SS)</label>
+            <label className={uiFieldLabel}>Duration</label>
             <input
               type="text"
               value={durationInput}
@@ -186,26 +128,20 @@ export function ActivityFieldsForm({ activity, onActivityChange }: ActivityField
 
           {(activity.type === "run" || activity.type === "swim" || activity.type === "hike") && (
             <div>
-              <label className={uiFieldLabel}>
-                Pace {activity.type === "swim" ? "(min/100m)" : "(min/km)"}
-              </label>
+              <label className={uiFieldLabel}>Pace</label>
               <input
                 type="text"
                 value={activity.pace ?? ""}
                 onChange={(e) => applyChange("pace", e.target.value)}
                 placeholder={activity.type === "swim" ? "2:00" : "5:30"}
                 className={uiInput}
-                aria-describedby="pace-hint"
               />
-              <p id="pace-hint" className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                Format: M:SS (e.g. 5:30)
-              </p>
             </div>
           )}
 
           {activity.type === "ride" && (
             <div>
-              <label className={uiFieldLabel}>Avg speed (km/h)</label>
+              <label className={uiFieldLabel}>Speed</label>
               <input
                 type="number"
                 min="0"
@@ -220,7 +156,7 @@ export function ActivityFieldsForm({ activity, onActivityChange }: ActivityField
 
           {(activity.type === "run" || activity.type === "ride" || activity.type === "hike") && (
             <div>
-              <label className={uiFieldLabel}>Elevation (m)</label>
+              <label className={uiFieldLabel}>Elev.</label>
               <input
                 type="number"
                 min="0"
@@ -232,10 +168,6 @@ export function ActivityFieldsForm({ activity, onActivityChange }: ActivityField
             </div>
           )}
         </div>
-
-        <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
-          Values stay in realistic ranges; distance, duration, and pace/speed are kept consistent.
-        </p>
       </div>
     </div>
   );

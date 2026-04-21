@@ -19,7 +19,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground min-w-0">
       <header className="border-b border-zinc-200/80 px-4 sm:px-6 py-5 sm:py-6 bg-background/80 backdrop-blur-sm dark:border-zinc-800/80">
-        <div className="mx-auto max-w-2xl flex items-center gap-3 sm:gap-4 w-full min-w-0">
+        <div className="mx-auto max-w-6xl flex items-center gap-3 sm:gap-4 w-full min-w-0">
           <Logo className="w-10 h-10 sm:w-12 sm:h-12 drop-shadow-sm shrink-0" />
           <div className="min-w-0 flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
@@ -33,7 +33,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl px-2 sm:px-6 py-6 sm:py-10">
+      <main className="mx-auto max-w-6xl px-2 sm:px-6 py-6 sm:py-10">
         <ActivityEditor
           activity={activity}
           onActivityChange={setActivity}

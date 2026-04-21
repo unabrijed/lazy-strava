@@ -2,11 +2,7 @@
 
 import { useId } from "react";
 import { STRAVA_ORANGE } from "@/lib/constants";
-import {
-  mkRoutePath,
-  routeIndexFromSeed,
-  ROUTE_PRESETS,
-} from "@/lib/routeShapes";
+import { mkRoutePath, routePointsFromSeed } from "@/lib/routeShapes";
 
 const MAP_DARK = "#111118";
 const MAP_LIGHT = "#e6e6ea";
@@ -44,8 +40,7 @@ export function RouteMap({
   const rw = width - pad * 2;
   const rh = height - pad * 2;
 
-  const ri = routeIndexFromSeed(seed);
-  const pts = ROUTE_PRESETS[ri] ?? ROUTE_PRESETS[0]!;
+  const pts = routePointsFromSeed(seed);
   const { d, start, end } = mkRoutePath(pts, rw, rh, pad, pad);
 
   const sw = Math.max(1.2, Math.min(2.5, width / 120));
@@ -66,7 +61,7 @@ export function RouteMap({
       height={height}
       viewBox={`0 0 ${width} ${height}`}
       className={className}
-      style={{ display: "block" }}
+      style={{ display: "block", margin: "0 auto" }}
     >
       {!lineOnly && (
         <defs>

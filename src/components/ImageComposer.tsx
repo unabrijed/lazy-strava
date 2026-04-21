@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import type { StravaActivity } from "@/lib/constants";
 import { StravaCard } from "./StravaCard";
 import { StravaCardCompact } from "./StravaCardCompact";
+import { routeSeedForActivity } from "@/lib/routeSeed";
 import { RouteMap } from "./RouteMap";
 
 /** Full-width export for map card (matches common story width). */
@@ -47,10 +48,7 @@ export function ImageComposer({
     [exportRef]
   );
 
-  const routeSeed =
-    (activity.routeName + activity.distance + activity.duration)
-      .split("")
-      .reduce((a, c) => a + c.charCodeAt(0), 0);
+  const routeSeed = routeSeedForActivity(activity);
 
   const mapExportW = MAP_EXPORT_WIDTH - 32;
   const mapExportH = Math.round((mapExportW * 96) / 284);
