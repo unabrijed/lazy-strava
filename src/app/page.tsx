@@ -9,6 +9,39 @@ import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useTheme } from "@/components/ThemeProvider";
 
+const socialLinks = [
+  {
+    name: "Instagram",
+    username: "unabrijed",
+    href: "https://www.instagram.com/unabrijed",
+    icon: (
+      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none">
+        <rect
+          width="16"
+          height="16"
+          x="4"
+          y="4"
+          rx="4"
+          stroke="currentColor"
+          strokeWidth="1.8"
+        />
+        <circle cx="12" cy="12" r="3.2" stroke="currentColor" strokeWidth="1.8" />
+        <circle cx="17" cy="7" r="1.1" fill="currentColor" />
+      </svg>
+    ),
+  },
+  {
+    name: "Twitter",
+    username: "unabrijed",
+    href: "https://twitter.com/unabrijed",
+    icon: (
+      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+        <path d="M18.9 2.5h3.3l-7.2 8.2 8.4 10.8h-6.6l-5.1-6.6-5.9 6.6H2.5l7.7-8.8-8-10.2h6.8l4.6 6 5.3-6Zm-1.2 17.1h1.8L8 4.3H6L17.7 19.6Z" />
+      </svg>
+    ),
+  },
+] as const;
+
 export default function Home() {
   const [activity, setActivity] = useState<StravaActivity>(() => getDefaultActivity("run"));
   const [cardStyle, setCardStyle] = useState<"map" | "compact">("map");
@@ -45,6 +78,29 @@ export default function Home() {
           exportRef={exportRef}
         />
       </main>
+
+      <footer className="border-t border-zinc-200/80 px-4 sm:px-6 py-6 bg-background/80 dark:border-zinc-800/80">
+        <div className="mx-auto max-w-6xl flex flex-col items-center justify-between gap-4 text-sm text-zinc-500 dark:text-zinc-400 sm:flex-row">
+          <p>Contact</p>
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-5">
+            {socialLinks.map((social) => (
+              <a
+                key={social.name}
+                href={social.href}
+                target="_blank"
+                rel="noreferrer"
+                className="group inline-flex items-center gap-2 underline underline-offset-4 decoration-zinc-300 transition-colors hover:text-[#FC4C02] hover:decoration-[#FC4C02] dark:decoration-zinc-700"
+                aria-label={`Contact on ${social.name}: @${social.username}`}
+              >
+                {social.icon}
+                <span>
+                  {social.name}: @{social.username}
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </footer>
 
       <ImageComposer
         activity={activity}
