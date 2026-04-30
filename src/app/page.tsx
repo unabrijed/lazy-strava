@@ -11,27 +11,6 @@ import { useTheme } from "@/components/ThemeProvider";
 
 const footerLinks = [
   {
-    name: "Portfolio",
-    label: "Portfolio",
-    href: "https://www.unabrijed.xyz",
-    ariaLabel: "Visit Brijesh's portfolio",
-    icon: (
-      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none">
-        <path
-          d="M12 3.8a8.2 8.2 0 1 0 0 16.4 8.2 8.2 0 0 0 0-16.4Z"
-          stroke="currentColor"
-          strokeWidth="1.8"
-        />
-        <path
-          d="M4.5 12h15M12 3.8c2.2 2.2 3.3 4.9 3.3 8.2s-1.1 6-3.3 8.2M12 3.8C9.8 6 8.7 8.7 8.7 12s1.1 6 3.3 8.2"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-        />
-      </svg>
-    ),
-  },
-  {
     name: "Instagram",
     label: "Instagram: @unabrijed",
     href: "https://www.instagram.com/unabrijed",
