@@ -1,6 +1,6 @@
 "use client";
 
-import type { ActivityType, StravaActivity } from "@/lib/constants";
+import type { ActivityType, CardVariant, FeedMeta, StravaActivity } from "@/lib/constants";
 import { validateActivity } from "@/lib/activityValidation";
 import { generateRandomActivity } from "@/lib/randomActivity";
 import {
@@ -8,29 +8,19 @@ import {
   uiActivityTypeCell,
   uiActivityTypeCellActive,
   uiCardShell,
-  uiDivider,
   uiFieldLabel,
   uiRandomButton,
   uiSectionLabel,
-  uiToggleActive,
-  uiToggleInactive,
 } from "@/lib/ui";
-import { StravaCard } from "./StravaCard";
-import { StravaCardCompact } from "./StravaCardCompact";
-import { randomRouteVariant, routeSeedForActivity } from "@/lib/routeSeed";
-import { RouteMap } from "./RouteMap";
 import { ActivityFieldsForm } from "./ActivityFieldsForm";
-import { ExportButton } from "./ExportButton";
+import { FeedMetaForm } from "./FeedMetaForm";
 
 interface ActivityEditorProps {
   activity: StravaActivity;
   onActivityChange: (activity: StravaActivity) => void;
-  statsTheme?: "light" | "dark";
-  cardStyle: "map" | "compact";
-  statsLayout: "horizontal" | "vertical";
-  onCardStyleChange: (style: "map" | "compact") => void;
-  onStatsLayoutChange: (layout: "horizontal" | "vertical") => void;
-  exportRef: React.RefObject<HTMLDivElement | null>;
+  variant: CardVariant;
+  feedMeta: FeedMeta;
+  onFeedMetaChange: (meta: FeedMeta) => void;
 }
 
 const ACTIVITY_TYPES: { type: ActivityType; label: string; icon: string }[] = [
@@ -40,21 +30,14 @@ const ACTIVITY_TYPES: { type: ActivityType; label: string; icon: string }[] = [
   { type: "hike", label: "Hike", icon: "🥾" },
 ];
 
+/** Form-only editor — the live preview lives in PreviewPanel. */
 export function ActivityEditor({
   activity,
   onActivityChange,
-  statsTheme = "light",
-  cardStyle,
-  statsLayout,
-  onCardStyleChange,
-  onStatsLayoutChange,
-  exportRef,
+  variant,
+  feedMeta,
+  onFeedMetaChange,
 }: ActivityEditorProps) {
-  const updateActivity = (next: StravaActivity) => {
-    onActivityChange(next);
-  };
-
-
   const handleSelectedTypeRandomize = () => {
     onActivityChange(generateRandomActivity(activity.type));
   };
@@ -67,28 +50,11 @@ export function ActivityEditor({
     onActivityChange(validateActivity({ ...activity, routeName: value }));
   };
 
-  const handleRouteRandomize = () => {
-    onActivityChange({ ...activity, routeVariant: randomRouteVariant() });
-  };
-
-  const routeSeed = routeSeedForActivity(activity);
   const selectedActivityLabel =
     ACTIVITY_TYPES.find((item) => item.type === activity.type)?.label ?? "Activity";
 
-  const preview =
-    cardStyle === "map" ? (
-      <StravaCard activity={activity} onChange={updateActivity} theme={statsTheme} />
-    ) : (
-      <div className="space-y-4">
-        <div className="flex justify-center">
-          <RouteMap seed={routeSeed} width={280} height={112} theme={statsTheme} />
-        </div>
-        <StravaCardCompact activity={activity} layout={statsLayout} theme={statsTheme} />
-      </div>
-    );
-
   return (
-    <div className={`${uiCardShell} overflow-hidden lg:grid lg:grid-cols-[minmax(360px,1fr)_minmax(320px,420px)]`}>
+    <div className={`${uiCardShell} overflow-hidden`}>
       <div className="p-5 sm:p-6 space-y-5">
         <div>
           <h2 className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
@@ -140,68 +106,12 @@ export function ActivityEditor({
           />
         </section>
 
-        <ActivityFieldsForm activity={activity} onActivityChange={updateActivity} />
+        <ActivityFieldsForm activity={activity} onActivityChange={onActivityChange} />
+
+        {variant === "feed" && (
+          <FeedMetaForm feedMeta={feedMeta} onFeedMetaChange={onFeedMetaChange} />
+        )}
       </div>
-
-      <div className={`${uiDivider} lg:hidden`} />
-
-      <aside className="bg-zinc-50/60 dark:bg-zinc-900/30 lg:border-l lg:border-zinc-200 lg:dark:border-zinc-800">
-        <div className="p-5 sm:p-6 space-y-5 lg:sticky lg:top-6">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <p className={uiSectionLabel}>Preview</p>
-              <button type="button" onClick={handleRouteRandomize} className={uiRandomButton}>
-                <ShuffleIcon className="h-4 w-4" aria-hidden />
-                Random route
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => onCardStyleChange("map")}
-                aria-pressed={cardStyle === "map"}
-                className={cardStyle === "map" ? uiToggleActive : uiToggleInactive}
-              >
-                Map + stats
-              </button>
-              <button
-                type="button"
-                onClick={() => onCardStyleChange("compact")}
-                aria-pressed={cardStyle === "compact"}
-                className={cardStyle === "compact" ? uiToggleActive : uiToggleInactive}
-              >
-                Compact
-              </button>
-            </div>
-          </div>
-
-          {cardStyle === "compact" && (
-            <div className="flex flex-wrap gap-2 items-center">
-              <span className="text-sm text-zinc-600 dark:text-zinc-400">Stats</span>
-              <button
-                type="button"
-                onClick={() => onStatsLayoutChange("vertical")}
-                aria-pressed={statsLayout === "vertical"}
-                className={statsLayout === "vertical" ? uiToggleActive : uiToggleInactive}
-              >
-                Vertical
-              </button>
-              <button
-                type="button"
-                onClick={() => onStatsLayoutChange("horizontal")}
-                aria-pressed={statsLayout === "horizontal"}
-                className={statsLayout === "horizontal" ? uiToggleActive : uiToggleInactive}
-              >
-                Horizontal
-              </button>
-            </div>
-          )}
-
-          <div className="flex justify-center">{preview}</div>
-
-          <ExportButton composeRef={exportRef} filename={activity.routeName} cardStyle={cardStyle} />
-        </div>
-      </aside>
     </div>
   );
 }

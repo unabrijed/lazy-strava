@@ -2,7 +2,7 @@
 
 import type { StravaActivity } from "@/lib/constants";
 import { STRAVA_ORANGE } from "@/lib/constants";
-import { formatDurationCompact } from "@/lib/randomActivity";
+import { statsForActivity } from "@/lib/formatStats";
 
 interface StravaCardCompactProps {
   activity: StravaActivity;
@@ -37,47 +37,17 @@ const ICONS: Record<StravaActivity["type"], React.ReactNode> = {
 
 export function StravaCardCompact({ activity, layout, theme = "dark" }: StravaCardCompactProps) {
   const isLight = theme === "light";
-  const formattedTime = formatDurationCompact(activity.duration ?? 0);
-  const d = activity.distance ?? 0;
-  const distanceDisplay =
-    activity.type === "swim" && d < 1
-      ? `${(d * 1000).toFixed(0)} m`
-      : `${d.toFixed(1)} km`;
-
-  const stats: { label: string; value: string }[] =
-    activity.type === "run"
-      ? [
-          { label: "Distance", value: distanceDisplay },
-          { label: "Pace", value: `${activity.pace ?? "—"} /km` },
-          { label: "Time", value: formattedTime },
-        ]
-      : activity.type === "swim"
-        ? [
-            { label: "Distance", value: distanceDisplay },
-            { label: "Pace", value: `${activity.pace ?? "—"} /100m` },
-            { label: "Time", value: formattedTime },
-          ]
-        : activity.type === "ride"
-          ? [
-              { label: "Distance", value: distanceDisplay },
-              { label: "Avg Speed", value: `${activity.speed ?? 0} km/h` },
-              { label: "Time", value: formattedTime },
-            ]
-          : [
-              { label: "Distance", value: distanceDisplay },
-              { label: "Elevation", value: `${activity.elevation ?? 0} m` },
-              { label: "Time", value: formattedTime },
-            ]
+  const stats = statsForActivity(activity);
 
   const textShadow = isLight ? "0 1px 2px rgba(255,255,255,0.8)" : "0 1px 2px rgba(0,0,0,0.8)";
-  const labelColor = isLight ? "text-zinc-600" : "text-white";
+  const labelColor = isLight ? "text-zinc-600" : "text-white/80";
   const valueColor = isLight ? "text-zinc-900" : "text-white";
   const brandColor = isLight ? "text-zinc-900" : "text-white";
 
   const StatItem = ({ label, value, dense = false }: { label: string; value: string; dense?: boolean }) => (
     <div className="min-w-[74px] max-w-full text-center font-sans whitespace-nowrap">
       <p className={`${dense ? "text-xs" : "text-sm"} font-normal ${labelColor}`} style={{ textShadow }}>{label}</p>
-      <p className={`${dense ? "text-xl sm:text-2xl" : "text-2xl"} font-semibold ${valueColor} mt-0.5`} style={{ textShadow }}>{value}</p>
+      <p className={`${dense ? "text-xl sm:text-2xl" : "text-2xl"} font-semibold tabular-nums ${valueColor} mt-0.5`} style={{ textShadow }}>{value}</p>
     </div>
   );
 
@@ -85,7 +55,7 @@ export function StravaCardCompact({ activity, layout, theme = "dark" }: StravaCa
     return (
       <div className="flex max-w-full flex-wrap items-center justify-center gap-x-4 gap-y-3 px-2 font-sans sm:gap-x-5">
         {stats.map((s) => (
-          <StatItem key={`${s.label}-${s.value}`} label={s.label} value={s.value} dense />
+          <StatItem key={s.field} label={s.label} value={s.value} dense />
         ))}
         <div className="flex shrink-0 items-center justify-center">{ICONS[activity.type]}</div>
         <span className={`shrink-0 text-sm font-semibold uppercase tracking-wide ${brandColor}`} style={{ textShadow }}>STRAVA</span>
@@ -96,7 +66,7 @@ export function StravaCardCompact({ activity, layout, theme = "dark" }: StravaCa
   return (
     <div className="flex flex-col items-center gap-4 font-sans">
       {stats.map((s) => (
-        <StatItem key={`${s.label}-${s.value}`} label={s.label} value={s.value} />
+        <StatItem key={s.field} label={s.label} value={s.value} />
       ))}
       <div className="flex items-center justify-center">{ICONS[activity.type]}</div>
       <span className={`text-sm font-semibold uppercase tracking-wide ${brandColor}`} style={{ textShadow }}>STRAVA</span>

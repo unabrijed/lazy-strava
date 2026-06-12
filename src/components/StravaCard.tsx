@@ -2,8 +2,8 @@
 
 import { useState, useMemo } from "react";
 import type { StravaActivity } from "@/lib/constants";
-import { STRAVA_ORANGE } from "@/lib/constants";
-import { formatDuration } from "@/lib/randomActivity";
+import { CARD_COLORS, STRAVA_ORANGE } from "@/lib/constants";
+import { statsForActivity } from "@/lib/formatStats";
 import { validateActivity } from "@/lib/activityValidation";
 import { routeSeedForActivity } from "@/lib/routeSeed";
 import { RouteMap } from "./RouteMap";
@@ -23,9 +23,27 @@ interface StravaCardProps {
   exportLayout?: StravaCardExportLayout;
 }
 
+/** Accepts "42m 13s", "1h 12m", "42:13", "1:12:45" or plain seconds. */
+function parseFlexibleDuration(v: string): number {
+  const str = v.trim();
+  const hms = str.match(/(?:(\d+)\s*h)?\s*(?:(\d+)\s*m)?\s*(?:(\d+)\s*s)?$/i);
+  if (hms && (hms[1] || hms[2] || hms[3])) {
+    return (
+      (parseInt(hms[1] ?? "0", 10) || 0) * 3600 +
+      (parseInt(hms[2] ?? "0", 10) || 0) * 60 +
+      (parseInt(hms[3] ?? "0", 10) || 0)
+    );
+  }
+  const parts = str.split(":").map(Number);
+  if (parts.length === 3 && parts.every((n) => !isNaN(n)))
+    return parts[0]! * 3600 + parts[1]! * 60 + parts[2]!;
+  if (parts.length === 2 && parts.every((n) => !isNaN(n))) return parts[0]! * 60 + parts[1]!;
+  return parseInt(str.replace(/\D/g, ""), 10) || 0;
+}
+
 /**
  * Strava Stats Sticker design - matches Strava's Instagram share format.
- * Uses Inter (Strava's UI font). Supports light/dark theme.
+ * Uses Inter (Strava's UI font) with tabular numerals. Supports light/dark theme.
  */
 export function StravaCard({
   activity,
@@ -34,38 +52,32 @@ export function StravaCard({
   className = "",
   exportLayout,
 }: StravaCardProps) {
-  const isLight = theme === "light";
+  const colors = CARD_COLORS[theme];
   const mapW = exportLayout?.mapWidth ?? 284;
   const mapH = exportLayout?.mapHeight ?? 96;
-  const formattedDuration = formatDuration(activity.duration ?? 0);
-  const distanceKm = activity.distance ?? 0;
-  const distanceDisplay =
-    activity.type === "swim" && distanceKm < 1
-      ? `${(distanceKm * 1000).toFixed(0)} m`
-      : `${distanceKm.toFixed(1)} km`;
 
   const routeSeed = useMemo(() => routeSeedForActivity(activity), [activity]);
+  const stats = statsForActivity(activity);
 
-  const handleFieldChange = (
-    field: keyof StravaActivity,
-    value: string | number
-  ) => {
+  const handleFieldChange = (field: keyof StravaActivity, value: string | number) => {
     if (!onChange) return;
     const next = { ...activity };
     if (field === "routeName") next.routeName = value as string;
-    if (field === "activityDate") next.activityDate = value as string;
-    if (field === "distance") next.distance = parseFloat(String(value).replace(/[^\d.]/g, "")) || 0;
-    if (field === "duration") {
+    if (field === "distance") {
       const str = String(value);
-      const parts = str.split(":").map(Number);
-      if (parts.length === 3) next.duration = parts[0]! * 3600 + parts[1]! * 60 + parts[2]!;
-      else if (parts.length === 2) next.duration = parts[0]! * 60 + parts[1]!;
-      else next.duration = parseInt(str.replace(/\D/g, ""), 10) || 0;
+      const num = parseFloat(str.replace(/[^\d.]/g, "")) || 0;
+      const isMeters =
+        /\d\s*m\b/.test(str) && !/km/.test(str) && (activity.type === "swim" || num >= 100);
+      next.distance = isMeters ? num / 1000 : num;
     }
-    if (field === "pace") next.pace = value as string;
+    if (field === "duration") next.duration = parseFlexibleDuration(String(value));
+    if (field === "pace") {
+      const m = String(value).match(/\d{1,2}:\d{2}/);
+      next.pace = m ? m[0] : String(value);
+    }
     if (field === "speed") next.speed = parseFloat(String(value).replace(/[^\d.]/g, "")) || 0;
-    if (field === "elevation") next.elevation = parseInt(String(value).replace(/\D/g, ""), 10) || 0;
-    if (field === "calories") next.calories = parseInt(String(value).replace(/\D/g, ""), 10) || 0;
+    if (field === "elevation")
+      next.elevation = parseInt(String(value).replace(/\D/g, ""), 10) || 0;
     const validated = validateActivity(next, field);
     onChange(validated);
   };
@@ -75,26 +87,20 @@ export function StravaCard({
       className={`font-sans overflow-hidden rounded-2xl ${className}`}
       style={{
         width: exportLayout?.width,
-        background: isLight ? "rgba(255, 255, 255, 0.98)" : "rgba(20, 20, 20, 0.95)",
-        boxShadow: isLight
-          ? "0 4px 20px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.06)"
-          : "0 4px 20px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06)",
+        background: colors.card,
+        boxShadow:
+          theme === "light"
+            ? "0 4px 20px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.06)"
+            : "0 4px 20px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06)",
       }}
     >
-      <div style={{ height: 2, backgroundColor: STRAVA_ORANGE }} />
       <div
         className="relative flex justify-center overflow-hidden"
         style={{
           padding: exportLayout ? "16px" : "10px",
         }}
       >
-        <RouteMap
-          seed={routeSeed}
-          width={mapW}
-          height={mapH}
-          theme={isLight ? "light" : "dark"}
-          lineOnly
-        />
+        <RouteMap seed={routeSeed} width={mapW} height={mapH} theme={theme} lineOnly />
       </div>
 
       <div className={`space-y-3 ${exportLayout ? "px-6 py-4" : "px-4 py-3"}`}>
@@ -104,88 +110,42 @@ export function StravaCard({
             value={activity.routeName}
             onChange={(e) => handleFieldChange("routeName", e.target.value)}
             placeholder="Activity name"
-            className={`w-full text-xs bg-transparent border-b outline-none pb-1 focus:border-[#FC4C02] ${
-              isLight
-                ? "text-zinc-500 border-zinc-200 placeholder:text-zinc-400"
-                : "text-white/60 border-white/10 placeholder:text-white/40"
-            }`}
+            className="w-full text-xs bg-transparent border-b outline-none pb-1 focus:border-[#FC4C02]"
+            style={{
+              color: colors.secondary,
+              borderColor: colors.divider,
+            }}
           />
         ) : (
-          <p className={`text-xs truncate ${isLight ? "text-zinc-500" : "text-white/50"}`}>{activity.routeName}</p>
+          <p className="text-xs truncate" style={{ color: colors.secondary }}>
+            {activity.routeName}
+          </p>
         )}
 
-        {/* Main stats row - Strava style: Distance, Time, Pace/Speed/Elevation */}
-        {(() => {
-          const thirdStat =
-            activity.type === "run" || activity.type === "swim"
-              ? {
-                  label: activity.type === "swim" ? "PACE /100m" : "PACE",
-                  value: activity.pace ?? "—",
-                  field: "pace" as const,
-                }
-              : activity.type === "ride"
-                ? { label: "AVG SPEED", value: `${activity.speed ?? 0} km/h`, field: "speed" as const }
-                : { label: "ELEVATION", value: `${activity.elevation ?? 0} m`, field: "elevation" as const };
-          return (
-            <div className="flex w-full justify-between gap-3 overflow-hidden">
-              <div className="flex-1 min-w-0">
-                <StatBlock
-                  theme={theme}
-                  label="DISTANCE"
-                  value={distanceDisplay}
-                  editable={!!onChange}
-                  onEdit={(v) => {
-                    const num = parseFloat(v.replace(/[^\d.]/g, "")) || 0;
-                    const isMeters = v.includes("m") || (activity.type === "swim" && num >= 100);
-                    if (!isNaN(num)) handleFieldChange("distance", isMeters ? num / 1000 : num);
-                  }}
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <StatBlock
-                  theme={theme}
-                  label="TIME"
-                  value={formattedDuration}
-                  editable={!!onChange}
-                  onEdit={(v) => {
-                    const parts = v.split(":").map(Number);
-                    let s = 0;
-                    if (parts.length === 3) s = parts[0]! * 3600 + parts[1]! * 60 + parts[2]!;
-                    else if (parts.length === 2) s = parts[0]! * 60 + parts[1]!;
-                    else s = parseInt(v, 10) || 0;
-                    if (s > 0) handleFieldChange("duration", s);
-                  }}
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <StatBlock
-                  theme={theme}
-                  label={thirdStat.label}
-                  value={thirdStat.value}
-                  editable={!!onChange}
-                  onEdit={(v) => {
-                    if (thirdStat.field === "elevation") {
-                      const n = parseInt(v.replace(/\D/g, ""), 10);
-                      if (!isNaN(n)) handleFieldChange("elevation", n);
-                    } else if (thirdStat.field === "speed") {
-                      const n = parseFloat(v.replace(/[^\d.]/g, ""));
-                      if (!isNaN(n)) handleFieldChange("speed", n);
-                    } else {
-                      handleFieldChange("pace", v);
-                    }
-                  }}
-                />
-              </div>
+        {/* Canonical Strava stat row: Distance / Pace-or-Speed-or-Elev / Time */}
+        <div className="flex w-full justify-between gap-3 overflow-hidden">
+          {stats.map((stat) => (
+            <div key={stat.field} className="flex-1 min-w-0">
+              <StatBlock
+                theme={theme}
+                label={stat.label}
+                value={stat.value}
+                editable={!!onChange}
+                onEdit={(v) => handleFieldChange(stat.field, v)}
+              />
             </div>
-          );
-        })()}
+          ))}
+        </div>
       </div>
 
       <div
         className="flex items-center justify-center py-2"
-        style={{ borderTop: isLight ? "1px solid rgba(0,0,0,0.08)" : "1px solid rgba(255,255,255,0.08)" }}
+        style={{ borderTop: `1px solid ${colors.divider}` }}
       >
-        <span className="text-sm font-semibold tracking-tight" style={{ color: STRAVA_ORANGE }}>
+        <span
+          className="text-[13px] font-bold uppercase tracking-[0.08em]"
+          style={{ color: STRAVA_ORANGE }}
+        >
           strava
         </span>
       </div>
@@ -208,21 +168,27 @@ function StatBlock({
 }) {
   const [editing, setEditing] = useState(false);
   const [innerValue, setInnerValue] = useState(value);
-  const isLight = theme === "light";
+  const colors = CARD_COLORS[theme];
 
   const handleBlur = () => {
     setEditing(false);
     onEdit?.(innerValue);
   };
 
-  const labelClass = `text-[10px] font-medium uppercase tracking-wider mb-0.5 ${isLight ? "text-zinc-500" : "text-white/40"}`;
-  const valueClass = `text-base font-semibold ${isLight ? "text-zinc-900" : "text-white"}`;
+  const labelStyle = { color: colors.secondary };
+  const valueStyle = { color: colors.text };
+  const labelClass = "text-[11px] font-medium mb-0.5";
+  const valueClass = "text-base font-semibold tabular-nums";
 
   if (!editable) {
     return (
       <div>
-        <p className={labelClass}>{label}</p>
-        <p className={valueClass}>{value}</p>
+        <p className={labelClass} style={labelStyle}>
+          {label}
+        </p>
+        <p className={valueClass} style={valueStyle}>
+          {value}
+        </p>
       </div>
     );
   }
@@ -230,16 +196,20 @@ function StatBlock({
   if (editing) {
     return (
       <div>
-        <p className={labelClass}>{label}</p>
+        <p className={labelClass} style={labelStyle}>
+          {label}
+        </p>
         <input
           autoFocus
           value={innerValue}
           onChange={(e) => setInnerValue(e.target.value)}
           onBlur={handleBlur}
           onKeyDown={(e) => e.key === "Enter" && handleBlur()}
-          className={`w-full text-base font-semibold rounded px-2 py-0.5 outline-none focus:ring-1 focus:ring-[#FC4C02] ${
-            isLight ? "text-zinc-900 bg-zinc-100" : "text-white bg-white/10"
-          }`}
+          className="w-full text-base font-semibold tabular-nums rounded px-2 py-0.5 outline-none focus:ring-1 focus:ring-[#FC4C02]"
+          style={{
+            color: colors.text,
+            background: theme === "light" ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.10)",
+          }}
         />
       </div>
     );
@@ -247,14 +217,20 @@ function StatBlock({
 
   return (
     <div
-      className={`cursor-pointer -mx-1 px-1 py-0.5 rounded ${isLight ? "hover:bg-zinc-100" : "hover:bg-white/5"}`}
+      className={`cursor-pointer -mx-1 px-1 py-0.5 rounded ${
+        theme === "light" ? "hover:bg-zinc-100" : "hover:bg-white/5"
+      }`}
       onClick={() => {
         setInnerValue(value);
         setEditing(true);
       }}
     >
-      <p className={labelClass}>{label}</p>
-      <p className={valueClass}>{value}</p>
+      <p className={labelClass} style={labelStyle}>
+        {label}
+      </p>
+      <p className={valueClass} style={valueStyle}>
+        {value}
+      </p>
     </div>
   );
 }

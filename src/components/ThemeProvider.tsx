@@ -4,9 +4,9 @@ import {
   createContext,
   useCallback,
   useContext,
-  useLayoutEffect,
   useMemo,
   useState,
+  useSyncExternalStore,
 } from "react";
 
 export type AppTheme = "light" | "dark";
@@ -26,29 +26,28 @@ function applyTheme(theme: AppTheme) {
   document.documentElement.style.colorScheme = theme === "dark" ? "dark" : "light";
 }
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // Fixed default for SSR + first client render so markup matches; boot script + effect sync real theme.
-  const [theme, setThemeState] = useState<AppTheme>("light");
+const noopSubscribe = () => () => {};
 
-  useLayoutEffect(() => {
-    const isDark = document.documentElement.classList.contains("dark");
-    setThemeState(isDark ? "dark" : "light");
-  }, []);
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  // Boot value comes from the <html> class set by the inline boot script;
+  // "light" on the server so SSR markup is stable. User toggles override it.
+  const bootTheme = useSyncExternalStore<AppTheme>(
+    noopSubscribe,
+    () => (document.documentElement.classList.contains("dark") ? "dark" : "light"),
+    () => "light"
+  );
+  const [override, setOverride] = useState<AppTheme | null>(null);
+  const theme = override ?? bootTheme;
 
   const setTheme = useCallback((t: AppTheme) => {
-    setThemeState(t);
+    setOverride(t);
     localStorage.setItem(THEME_STORAGE_KEY, t);
     applyTheme(t);
   }, []);
 
   const toggleTheme = useCallback(() => {
-    setThemeState((prev) => {
-      const next: AppTheme = prev === "dark" ? "light" : "dark";
-      localStorage.setItem(THEME_STORAGE_KEY, next);
-      applyTheme(next);
-      return next;
-    });
-  }, []);
+    setTheme(theme === "dark" ? "light" : "dark");
+  }, [theme, setTheme]);
 
   const value = useMemo(
     () => ({ theme, setTheme, toggleTheme }),

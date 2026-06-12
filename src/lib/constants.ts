@@ -16,6 +16,63 @@ export interface StravaActivity {
 
 export const STRAVA_ORANGE = "#FC4C02";
 
+/**
+ * Output card variants, presented as a swipeable strip (like Strava's own
+ * sticker picker). `stats`/`statsRow` are the compact overlay in vertical /
+ * horizontal arrangement.
+ */
+export type CardVariant = "sticker" | "feed" | "stats" | "statsRow";
+
+export const CARD_VARIANTS: { id: CardVariant; label: string }[] = [
+  { id: "sticker", label: "Sticker" },
+  { id: "feed", label: "Feed post" },
+  { id: "stats", label: "Stats" },
+  { id: "statsRow", label: "Stats row" },
+];
+
+/**
+ * Card-internal palette (Strava 2025 light/dark surfaces). Cards consume these
+ * as inline-style hex — independent of the site theme and safe for html2canvas
+ * (no oklch color functions).
+ */
+export const CARD_COLORS = {
+  light: {
+    bg: "#F7F7FA",
+    card: "#FFFFFF",
+    text: "#242428",
+    secondary: "#6D6D78",
+    divider: "rgba(0,0,0,0.08)",
+  },
+  dark: {
+    bg: "#101012",
+    card: "#1C1C1E",
+    text: "#FFFFFF",
+    secondary: "#A9A9B2",
+    divider: "rgba(255,255,255,0.10)",
+  },
+} as const;
+
+/** Extra fields for the feed-post mimic; kept separate from StravaActivity so
+ * validation/random generation/route seeding stay untouched. */
+export interface FeedMeta {
+  athleteName: string;
+  /** Emoji avatar; initials derived from athleteName when absent. */
+  avatarEmoji?: string;
+  location: string;
+  /** "HH:MM" 24h — date itself stays on StravaActivity.activityDate. */
+  activityTime: string;
+  kudosCount: number;
+  achievementCount: number;
+}
+
+export const DEFAULT_FEED_META: FeedMeta = {
+  athleteName: "Alex Runner",
+  location: "Riverside Park",
+  activityTime: "06:42",
+  kudosCount: 23,
+  achievementCount: 2,
+};
+
 /** Grouped by time of day for UI chips; flat list derived for random/datalist. */
 export const ACTIVITY_NAME_PRESET_GROUPS: Record<
   ActivityType,

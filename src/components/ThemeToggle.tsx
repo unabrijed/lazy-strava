@@ -1,17 +1,20 @@
 "use client";
 
 import type { SVGProps } from "react";
-import { useLayoutEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { useTheme } from "./ThemeProvider";
+
+const noopSubscribe = () => () => {};
 
 export function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  // false during SSR/hydration, true on the client — lint-clean mounted gate.
+  const mounted = useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false
+  );
   const isDark = theme === "dark";
-
-  useLayoutEffect(() => {
-    setMounted(true);
-  }, []);
 
   return (
     <button

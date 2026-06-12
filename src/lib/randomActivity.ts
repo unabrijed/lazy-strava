@@ -1,4 +1,4 @@
-import type { ActivityType, StravaActivity } from "./constants";
+import type { ActivityType, FeedMeta, StravaActivity } from "./constants";
 import { DEFAULT_ROUTE_NAME, ROUTE_NAMES } from "./constants";
 
 function todayIsoDate(): string {
@@ -170,6 +170,42 @@ export function generateRandomActivity(type: ActivityType): StravaActivity {
       };
     }
   }
+}
+
+const FEED_NAMES = [
+  "Alex Runner",
+  "Sam Miles",
+  "Jordan Pace",
+  "Riley Brooks",
+  "Casey Hill",
+  "Morgan Trail",
+  "Jamie Swift",
+  "Taylor Stride",
+];
+
+const FEED_LOCATIONS = [
+  "Riverside Park",
+  "Old Town Loop",
+  "Harbor Front",
+  "Sunset Boulevard",
+  "Lakeside Trail",
+  "City Center",
+  "Greenway Path",
+  "Hilltop Reserve",
+];
+
+/** Plausible feed-card details: morning/evening start times, modest kudos. */
+export function randomFeedMeta(): FeedMeta {
+  const morning = Math.random() < 0.6;
+  const hour = morning ? randomInt(5, 9) : randomInt(17, 20);
+  const minute = randomInt(0, 59);
+  return {
+    athleteName: randomFrom(FEED_NAMES),
+    location: randomFrom(FEED_LOCATIONS),
+    activityTime: `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`,
+    kudosCount: randomInt(8, 80),
+    achievementCount: randomInt(0, 5),
+  };
 }
 
 export function formatDuration(seconds: number | undefined): string {

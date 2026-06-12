@@ -1,11 +1,13 @@
 "use client";
 
-import { useId } from "react";
 import { STRAVA_ORANGE } from "@/lib/constants";
 import { mkRoutePath, routePointsFromSeed } from "@/lib/routeShapes";
 
-const MAP_DARK = "#111118";
-const MAP_LIGHT = "#e6e6ea";
+// Strava-style map surfaces: warm paper beige in light, deep slate in dark.
+const MAP_DARK = "#1A1C22";
+const MAP_LIGHT = "#E9E6DF";
+const STREET_DARK = "#262A33";
+const STREET_LIGHT = "#FFFFFF";
 
 interface RouteMapProps {
   seed?: number;
@@ -15,10 +17,56 @@ interface RouteMapProps {
   /** Light map chrome matches light cards; dark matches Strava-style map strip. */
   theme?: "light" | "dark";
   /**
-   * Only the route stroke + endpoints (no dark map panel / grid). Use for PNG export
-   * on transparent backgrounds (e.g. compact layout).
+   * Only the route stroke + endpoints (no map panel / streets). Use for PNG
+   * export on transparent backgrounds (e.g. compact layout).
    */
   lineOnly?: boolean;
+}
+
+/** Tiny deterministic LCG so the street layout is stable per seed (no Math.random — SSR-safe). */
+function seededRng(seed: number): () => number {
+  let s = (seed >>> 0) || 1;
+  return () => {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return s / 4294967296;
+  };
+}
+
+interface Street {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  major: boolean;
+}
+
+/** Pseudo street network: mostly axis-aligned segments with slight skew, like a map at this zoom. */
+function streetsFromSeed(seed: number, width: number, height: number): Street[] {
+  const rng = seededRng(seed * 7 + 13);
+  const out: Street[] = [];
+  const hCount = 3 + Math.floor(rng() * 2);
+  const vCount = 3 + Math.floor(rng() * 2);
+  for (let i = 0; i < hCount; i++) {
+    const y = height * (0.08 + 0.84 * rng());
+    out.push({
+      x1: 0,
+      y1: y,
+      x2: width,
+      y2: y + (rng() - 0.5) * height * 0.25,
+      major: rng() < 0.3,
+    });
+  }
+  for (let i = 0; i < vCount; i++) {
+    const x = width * (0.08 + 0.84 * rng());
+    out.push({
+      x1: x,
+      y1: 0,
+      x2: x + (rng() - 0.5) * width * 0.25,
+      y2: height,
+      major: rng() < 0.3,
+    });
+  }
+  return out;
 }
 
 export function RouteMap({
@@ -29,12 +77,9 @@ export function RouteMap({
   theme = "dark",
   lineOnly = false,
 }: RouteMapProps) {
-  const patternId = useId();
-  const gridPatternId = `route-map-grid-${patternId.replace(/:/g, "")}`;
   const isLight = theme === "light";
   const mapBg = isLight ? MAP_LIGHT : MAP_DARK;
-  const gridStroke = isLight ? "rgba(0,0,0,0.08)" : "#1e1e28";
-  const dotFill = isLight ? "rgba(0,0,0,0.12)" : "#2a2a3a";
+  const streetStroke = isLight ? STREET_LIGHT : STREET_DARK;
 
   const pad = Math.max(8, Math.round(Math.min(width, height) * 0.04));
   const rw = width - pad * 2;
@@ -44,16 +89,7 @@ export function RouteMap({
   const { d, start, end } = mkRoutePath(pts, rw, rh, pad, pad);
 
   const sw = Math.max(1.2, Math.min(2.5, width / 120));
-  const dotNodes: [number, number][] = [
-    [0.15, 0.22],
-    [0.35, 0.42],
-    [0.55, 0.18],
-    [0.72, 0.65],
-    [0.42, 0.78],
-    [0.82, 0.35],
-    [0.25, 0.6],
-    [0.65, 0.45],
-  ];
+  const streets = lineOnly ? [] : streetsFromSeed(seed, width, height);
 
   return (
     <svg
@@ -64,61 +100,63 @@ export function RouteMap({
       style={{ display: "block", margin: "0 auto" }}
     >
       {!lineOnly && (
-        <defs>
-          <pattern
-            id={gridPatternId}
-            width={28}
-            height={28}
-            patternUnits="userSpaceOnUse"
-          >
-            <path
-              d="M 28 0 L 0 0 0 28"
-              fill="none"
-              stroke={gridStroke}
-              strokeWidth={0.5}
-            />
-          </pattern>
-        </defs>
-      )}
-      {!lineOnly && (
         <>
           <rect width={width} height={height} fill={mapBg} />
-          <rect width={width} height={height} fill={`url(#${gridPatternId})`} opacity={0.5} />
-          {dotNodes.map(([nx, ny], i) => (
-            <circle
+          {streets.map((s, i) => (
+            <line
               key={i}
-              cx={nx * width}
-              cy={ny * height}
-              r={1.5}
-              fill={dotFill}
-              opacity={0.7}
+              x1={s.x1}
+              y1={s.y1}
+              x2={s.x2}
+              y2={s.y2}
+              stroke={streetStroke}
+              strokeWidth={s.major ? sw * 2.2 : sw * 1.1}
+              strokeOpacity={isLight ? 0.9 : 0.85}
+              strokeLinecap="round"
             />
           ))}
         </>
       )}
 
+      {lineOnly ? (
+        // Transparent-sticker style: soft orange glow around the line.
+        <>
+          <path
+            d={d}
+            fill="none"
+            stroke={STRAVA_ORANGE}
+            strokeWidth={sw * 3.5}
+            strokeOpacity={0.18}
+            strokeLinecap="round"
+          />
+          <path
+            d={d}
+            fill="none"
+            stroke={STRAVA_ORANGE}
+            strokeWidth={sw * 1.6}
+            strokeOpacity={0.45}
+            strokeLinecap="round"
+          />
+        </>
+      ) : (
+        // Map style: subtle casing under the polyline, like Strava's maps.
+        <path
+          d={d}
+          fill="none"
+          stroke={isLight ? "#FFFFFF" : "#0F1014"}
+          strokeWidth={sw * 2.2}
+          strokeOpacity={0.85}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      )}
       <path
         d={d}
         fill="none"
         stroke={STRAVA_ORANGE}
-        strokeWidth={sw * 3.5}
-        strokeOpacity={0.18}
+        strokeWidth={lineOnly ? sw : sw * 1.4}
         strokeLinecap="round"
-      />
-      <path
-        d={d}
-        fill="none"
-        stroke={STRAVA_ORANGE}
-        strokeWidth={sw * 1.6}
-        strokeOpacity={0.45}
-        strokeLinecap="round"
-      />
-      <path
-        d={d}
-        fill="none"
-        stroke={STRAVA_ORANGE}
-        strokeWidth={sw}
-        strokeLinecap="round"
+        strokeLinejoin="round"
       />
 
       <circle cx={start[0]} cy={start[1]} r={sw * 2.4} fill={STRAVA_ORANGE} />
